@@ -129,8 +129,4 @@ make lint
 
 Please read **CONTRIBUTING.md** before creating branches or submitting Pull Requests.
 
----
 
-## License
-
-License information will be added by the project maintainers.
