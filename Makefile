@@ -2,10 +2,12 @@ ifeq ($(OS),Windows_NT)
     VENV_DIR := .venv
     VENV_BIN := $(VENV_DIR)/Scripts
     PYTHON_HOST ?= python
+    NPM := npm.cmd
 else
     VENV_DIR := .venv
     VENV_BIN := $(VENV_DIR)/bin
     PYTHON_HOST ?= python3
+    NPM := npm
 endif
 
 VENV_PYTHON := $(VENV_BIN)/python
@@ -34,27 +36,27 @@ venv:
 
 setup: venv install
 	$(VENV_PYTHON) -m pip install --upgrade pip
-	$(VENV_PIP) install -e ".[dev]"
+	$(VENV_PIP) install -e "./api[dev]"
 	$(VENV_BIN)/pre-commit install
 
 install:
-	@if [ -d "frontend" ]; then cd frontend && npm install; else npm install; fi
+	@if [ -f "frontend/package.json" ]; then cd frontend && $(NPM) install; else echo "Skipping frontend install (no package.json)"; fi
 
 dev:
-	@if [ -d "frontend" ]; then cd frontend && npm run dev; else npm run dev; fi
+	@if [ -f "frontend/package.json" ]; then cd frontend && $(NPM) run dev; else echo "No frontend package.json found"; fi
 
 build:
-	@if [ -d "frontend" ]; then cd frontend && npm run build; else npm run build; fi
+	@if [ -f "frontend/package.json" ]; then cd frontend && $(NPM) run build; else echo "No frontend package.json found"; fi
 
 lint:
-	$(VENV_BIN)/ruff check .
-	$(VENV_BIN)/mypy .
-	$(VENV_BIN)/lint-imports
-	@if [ -d "frontend" ]; then cd frontend && npm run lint; else npm run lint; fi
+	$(VENV_BIN)/ruff check api
+	$(VENV_BIN)/mypy api
+	$(VENV_BIN)/lint-imports --config api/pyproject.toml
+	@if [ -f "frontend/package.json" ]; then cd frontend && $(NPM) run lint; fi
 
 test:
-	$(VENV_BIN)/pytest
-	@if [ -d "frontend" ]; then cd frontend && npm run test; else npm run test; fi
+	$(VENV_BIN)/pytest api
+	@if [ -f "frontend/package.json" ]; then cd frontend && $(NPM) run test; fi
 
 compose-up:
 	docker compose up -d --build
