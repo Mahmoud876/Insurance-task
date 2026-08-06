@@ -2,3 +2,13 @@ __pycache__/
 .venv/
 .git/
 *.pyc
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.env
+*.log
