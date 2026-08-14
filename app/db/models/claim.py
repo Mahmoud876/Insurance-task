@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from app.db.models.claim_line import ClaimLine
 
 
-class ClaimStatus(str, enum.Enum):
+class ClaimStatus(enum.StrEnum):
     DRAFT = "DRAFT"
     SUBMITTED = "SUBMITTED"
     ACCEPTED = "ACCEPTED"
