@@ -1,4 +1,4 @@
-from dotenv import load_dotenv  # type: ignore[import-not-found]
+from dotenv import load_dotenv
 from fastapi import FastAPI
 
 load_dotenv()
