@@ -68,7 +68,7 @@ migrate:
 	@echo "No migrations to run yet."
 
 seed:
-	@echo "No seed data to insert yet."
+	$(VENV_BIN)/python app/db/seed_reference_data.py
 
 clean:
 	rm -rf $(VENV_DIR) node_modules frontend/node_modules .pytest_cache .mypy_cache
