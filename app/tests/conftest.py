@@ -15,7 +15,7 @@ from app.main import app
 # testcontainers package — there is no testcontainers.community namespace.
 from testcontainers.postgres import PostgresContainer
 
-ALEMBIC_INI = Path(__file__).resolve().parent.parent / "alembic.ini"
+ALEMBIC_INI = Path(__file__).resolve().parent.parent.parent / "alembic.ini"
 
 
 @pytest.fixture(scope="session")

@@ -13,7 +13,7 @@ endif
 VENV_PYTHON := $(VENV_BIN)/python
 VENV_PIP := $(VENV_BIN)/pip
 
-.PHONY: venv setup install dev build lint test compose-up compose-down migrate seed clean help
+.PHONY: venv setup install dev build lint test openapi-generate openapi-check compose-up compose-down migrate seed clean help
 
 help:
 	@echo "Available commands:"
@@ -49,14 +49,26 @@ build:
 	@if [ -f "frontend/package.json" ]; then cd frontend && $(NPM) run build; else echo "No frontend package.json found"; fi
 
 lint:
-	$(VENV_BIN)/ruff check api
-	$(VENV_BIN)/mypy api
+	$(VENV_BIN)/ruff check app
+	$(VENV_BIN)/mypy app
 	$(VENV_BIN)/lint-imports --config api/pyproject.toml
 	@if [ -f "frontend/package.json" ]; then cd frontend && $(NPM) run lint; fi
 
 test:
-	$(VENV_BIN)/pytest api
+	$(VENV_BIN)/pytest app
 	@if [ -f "frontend/package.json" ]; then cd frontend && $(NPM) run test; fi
+
+
+openapi-generate:
+	$(VENV_PYTHON) scripts/generate_openapi.py
+
+openapi-check:
+	@tmp=$$(mktemp); \
+	$(VENV_PYTHON) scripts/generate_openapi.py "$$tmp"; \
+	diff -u openapi.json "$$tmp"; \
+	status=$$?; \
+	rm -f "$$tmp"; \
+	exit $$status
 
 compose-up:
 	docker compose up -d --build

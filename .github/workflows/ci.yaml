@@ -35,11 +35,14 @@ jobs:
 
       - name: Import Linter
         env:
-            PYTHONPATH: ..
+          PYTHONPATH: ..
         run: lint-imports
 
       - name: Pytest
         run: pytest || test $? -eq 5
+
+      - name: OpenAPI contract check
+        run: make openapi-check
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
