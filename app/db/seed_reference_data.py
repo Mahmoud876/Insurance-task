@@ -1,4 +1,3 @@
-
 import csv
 import os
 from pathlib import Path
@@ -6,15 +5,12 @@ from pathlib import Path
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 
-
 # Project root
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 PROCEDURE_FILE = BASE_DIR / "data" / "procedure_codes.csv"
 DIAGNOSIS_FILE = BASE_DIR / "data" / "diagnosis_codes.csv"
-COMPATIBILITY_FILE = (
-    BASE_DIR / "data" / "procedure_diagnosis_compat.csv"
-)
+COMPATIBILITY_FILE = BASE_DIR / "data" / "procedure_diagnosis_compat.csv"
 
 
 def get_database_url():
@@ -108,21 +104,14 @@ def seed_procedures(connection):
                 "requires_arch": row["requires_arch"] == "true",
                 "is_posterior_only": row["is_posterior_only"] == "true",
                 "is_anterior_only": row["is_anterior_only"] == "true",
-                "is_primary_dentition_only":
-                    row["is_primary_dentition_only"] == "true",
+                "is_primary_dentition_only": row["is_primary_dentition_only"] == "true",
                 "allowed_surfaces": (
-                    row["allowed_surfaces"].split(",")
-                    if row["allowed_surfaces"]
-                    else None
+                    row["allowed_surfaces"].split(",") if row["allowed_surfaces"] else None
                 ),
                 "typical_documentation": (
-                    [row["typical_documentation"]]
-                    if row["typical_documentation"]
-                    else None
+                    [row["typical_documentation"]] if row["typical_documentation"] else None
                 ),
-                "valid_to": (
-                    row["valid_to"] or None
-                ),
+                "valid_to": (row["valid_to"] or None),
             },
         )
 

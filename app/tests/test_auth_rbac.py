@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import jwt
@@ -45,7 +45,7 @@ def make_test_jwt(
         "exp": now + exp_delta,
     }
     key = secret_key if secret_key is not None else settings.JWT_SECRET_KEY
-    return jwt.encode(payload, key, algorithm=settings.JWT_ALGORITHM)
+    return cast(str, jwt.encode(payload, key, algorithm=settings.JWT_ALGORITHM))
 
 
 def decode_test_token(token: str) -> AuthContext:

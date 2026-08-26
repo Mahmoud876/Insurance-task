@@ -1,7 +1,5 @@
 import csv
-from datetime import date
 from pathlib import Path
-
 
 OUTPUT = Path("data/procedure_codes.csv")
 
@@ -64,9 +62,7 @@ def generate_procedures():
                 "is_posterior_only": str(posterior).lower(),
                 "is_anterior_only": str(anterior).lower(),
                 "is_primary_dentition_only": str(primary).lower(),
-                "typical_documentation": documentation[
-                    (i - 1) % len(documentation)
-                ],
+                "typical_documentation": documentation[(i - 1) % len(documentation)],
                 "valid_from": "2026-01-01",
                 "valid_to": "",
             }
@@ -84,7 +80,6 @@ def main():
         "short_desc",
         "category",
         "requires_tooth",
-
         "requires_surface",
         "requires_quadrant",
         "requires_arch",
@@ -108,21 +103,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

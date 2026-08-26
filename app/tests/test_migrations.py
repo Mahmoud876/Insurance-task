@@ -32,17 +32,14 @@ def test_migration_upgrade_downgrade_cycle(alembic_cfg):
 
     assert "tenant" in inspector.get_table_names()
     assert "insurance_policy" in inspector.get_table_names()
+    assert "procedure_code" in inspector.get_table_names()
 
     command.downgrade(alembic_cfg, "-1")
 
     inspector = inspect(engine)
-    claim_columns = {col["name"] for col in inspector.get_columns("claim")}
-    assert "claim" in inspector.get_table_names()
-    assert "claim_number" not in claim_columns
-    assert "tenant" in inspector.get_table_names()
+    assert "procedure_code" not in inspector.get_table_names()
 
     command.upgrade(alembic_cfg, "head")
 
     inspector = inspect(engine)
-    assert "tenant" in inspector.get_table_names()
-    assert "insurance_policy" in inspector.get_table_names()
+    assert "procedure_code" in inspector.get_table_names()
