@@ -2,11 +2,18 @@ from uuid import UUID
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 
+from app.api.errors import (
+    http_exception_handler,
+    validation_exception_handler,
+)
+from app.api.routes.claims import router as public_claims_router
 from app.api.v1.claims import router as claims_router
 from app.core.auth import AuthContext, decode_jwt_token
 from app.db.session import SessionLocal, apply_tenant_rls, clear_tenant_rls, current_tenant_id
@@ -14,6 +21,16 @@ from app.db.session import SessionLocal, apply_tenant_rls, clear_tenant_rls, cur
 load_dotenv()
 
 app = FastAPI(title="Dental Claims Engine")
+
+app.add_exception_handler(
+    StarletteHTTPException,
+    http_exception_handler,
+)
+
+app.add_exception_handler(
+    RequestValidationError,
+    validation_exception_handler,
+)
 
 
 class TenantIsolationMiddleware(BaseHTTPMiddleware):
@@ -62,6 +79,7 @@ app.add_middleware(TenantIsolationMiddleware)
 app.add_middleware(AuthenticationMiddleware)
 
 app.include_router(claims_router, prefix="/api/v1")
+app.include_router(public_claims_router, prefix="/v1")
 
 
 @app.get("/health")

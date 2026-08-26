@@ -7,14 +7,17 @@ from uuid import UUID, uuid4
 import pytest
 from alembic.config import Config
 from dotenv import load_dotenv
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
 from alembic import command
+from app.api.deps import get_db
 from app.db.models.claim import Claim, ClaimStatus
 from app.db.models.patient import Patient
 from app.db.models.provider import Provider
 from app.db.session import apply_tenant_rls
+from app.main import app
 
 load_dotenv()
 
@@ -140,3 +143,36 @@ def db_session(db_engine) -> Generator[Session, None, None]:
     with Session(db_engine) as session:
         yield session
         session.rollback()
+        session.execute(
+            text(
+                """
+                TRUNCATE TABLE
+                    claim_line,
+                    claim_attachment,
+                    claim,
+                    audit_event,
+                    insurance_policy,
+                    payer_plan,
+                    payer,
+                    provider,
+                    patient,
+                    app_user,
+                    tenant
+                CASCADE
+                """
+            )
+        )
+        session.commit()
+
+
+@pytest.fixture
+def client(db_session: Session) -> Generator[TestClient, None, None]:
+    def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    with TestClient(app) as test_client:
+        yield test_client
+
+    app.dependency_overrides.clear()

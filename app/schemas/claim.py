@@ -16,7 +16,7 @@ class ClaimBase(BaseModel):
 
 
 class ClaimCreate(ClaimBase):
-    pass
+    tenant_id: UUID | None = None
 
 
 class ClaimUpdate(BaseModel):
@@ -38,7 +38,28 @@ class ClaimResponse(ClaimBase):
     updated_at: datetime
 
 
-class ClaimBoardPage(BaseModel):
+class ClaimListResponse(BaseModel):
     items: list[ClaimResponse]
     next_cursor: str | None = None
     has_more: bool = False
+
+
+class ClaimBoardPage(ClaimListResponse):
+    pass
+
+
+class ClaimLineCreate(BaseModel):
+    procedure_code: str
+    tooth_number: str | None = None
+    surface: str | None = None
+    charge_amount: Decimal
+
+
+class ClaimLineResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    procedure_code: str
+    tooth_number: str | None
+    surface: str | None
+    charge_amount: Decimal

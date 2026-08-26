@@ -76,12 +76,10 @@ migrate-down:
 	$(VENV_BIN)/alembic downgrade -1
 
 seed:
-	$(VENV_PYTHON) -m app.infrastructure.database.seed
+	$(VENV_PYTHON) app/db/seed_reference_data.py
 
 clean:
 	rm -rf $(VENV_DIR) node_modules frontend/node_modules .pytest_cache .mypy_cache .ruff_cache .coverage htmlcov coverage.xml dist build *.egg-info
-
-.PHONY: ci
 
 ci: venv
 	@echo "==> 1/5 Running Ruff..."
