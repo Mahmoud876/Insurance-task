@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import APIRouter
 
 from app.schemas.claim import ClaimCreate
@@ -9,7 +11,5 @@ router = APIRouter(
 
 
 @router.post("")
-def create_claim(data: ClaimCreate):
+def create_claim(data: ClaimCreate) -> Any:
     return data
-
-
