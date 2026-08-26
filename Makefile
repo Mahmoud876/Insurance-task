@@ -13,7 +13,7 @@ endif
 VENV_PYTHON := $(VENV_BIN)/python
 VENV_PIP := $(VENV_BIN)/pip
 
-.PHONY: venv setup install dev build lint test compose-up compose-down migrate seed clean help
+.PHONY: venv setup install dev build lint lint-fix test compose-up compose-down migrate migrate-down seed clean help ci
 
 help:
 	@echo "Available commands:"
@@ -21,13 +21,14 @@ help:
 	@echo "  make install      Install frontend npm dependencies"
 	@echo "  make dev          Start local frontend dev server"
 	@echo "  make build        Build frontend production assets"
-	@echo "  make lint         Run backend (ruff, mypy, import-linter) and frontend linters"
+	@echo "  make lint         Run backend (ruff, mypy) and frontend linters"
 	@echo "  make test         Run backend (pytest) and frontend tests"
 	@echo "  make compose-up   Start Docker Compose stack"
 	@echo "  make compose-down Tear down Docker Compose stack"
-	@echo "  make migrate      Run database migrations"
+	@echo "  make migrate      Run database migrations (alembic upgrade head)"
+	@echo "  make migrate-down Roll back last database migration (alembic downgrade -1)"
 	@echo "  make seed         Seed database data"
-	@echo "  make clean        Remove .venv and node_modules"
+	@echo "  make clean        Remove virtualenvs, build artifacts, and test caches"
 
 venv:
 	@if [ ! -d "$(VENV_DIR)" ]; then \
@@ -36,7 +37,7 @@ venv:
 
 setup: venv install
 	$(VENV_PYTHON) -m pip install --upgrade pip
-	$(VENV_PIP) install -e "./api[dev]"
+	$(VENV_PIP) install -e ".[dev]"
 	$(VENV_BIN)/pre-commit install
 
 install:
@@ -49,13 +50,17 @@ build:
 	@if [ -f "frontend/package.json" ]; then cd frontend && $(NPM) run build; else echo "No frontend package.json found"; fi
 
 lint:
-	$(VENV_BIN)/ruff check api
-	$(VENV_BIN)/mypy api
-	$(VENV_BIN)/lint-imports --config api/pyproject.toml
+	$(VENV_BIN)/ruff check .
+	$(VENV_BIN)/mypy . | $(VENV_BIN)/mypy-baseline filter
+	@if [ -f "frontend/package.json" ]; then cd frontend && $(NPM) run lint; fi
+
+lint-fix:
+	$(VENV_BIN)/ruff check --fix .
+	$(VENV_BIN)/mypy . | $(VENV_BIN)/mypy-baseline filter
 	@if [ -f "frontend/package.json" ]; then cd frontend && $(NPM) run lint; fi
 
 test:
-	$(VENV_BIN)/pytest api
+	$(VENV_BIN)/pytest app/tests/ -v --cov=app --cov-report=term-missing
 	@if [ -f "frontend/package.json" ]; then cd frontend && $(NPM) run test; fi
 
 compose-up:
@@ -65,10 +70,31 @@ compose-down:
 	docker compose down -v
 
 migrate:
-	@echo "No migrations to run yet."
+	$(VENV_BIN)/alembic upgrade head
+
+migrate-down:
+	$(VENV_BIN)/alembic downgrade -1
 
 seed:
-	@echo "No seed data to insert yet."
+	$(VENV_PYTHON) -m app.infrastructure.database.seed
 
 clean:
-	rm -rf $(VENV_DIR) node_modules frontend/node_modules .pytest_cache .mypy_cache
+	rm -rf $(VENV_DIR) node_modules frontend/node_modules .pytest_cache .mypy_cache .ruff_cache .coverage htmlcov coverage.xml dist build *.egg-info
+
+.PHONY: ci
+
+ci: venv
+	@echo "==> 1/5 Running Ruff..."
+	$(VENV_BIN)/ruff check .
+	@echo "==> 2/5 Running Mypy (Strict CI Check)..."
+	$(VENV_BIN)/mypy .
+	@echo "==> 3/5 Running Import Linter..."
+	PYTHONPATH=. $(VENV_BIN)/lint-imports
+	@echo "==> 4/5 Running Pytest & Migrations..."
+	DATABASE_URL="postgresql://postgres:postgres@localhost:5432/scrubber_test" $(VENV_BIN)/pytest
+	DATABASE_URL="postgresql://postgres:postgres@localhost:5432/scrubber_test" $(VENV_BIN)/alembic upgrade head
+	DATABASE_URL="postgresql://postgres:postgres@localhost:5432/scrubber_test" $(VENV_BIN)/alembic downgrade -1
+	DATABASE_URL="postgresql://postgres:postgres@localhost:5432/scrubber_test" $(VENV_BIN)/alembic upgrade head
+	@echo "==> 5/5 Building Frontend..."
+	@if [ -f "frontend/package.json" ]; then cd frontend && $(NPM) run build; fi
+	@echo "✅ All CI checks passed locally!"

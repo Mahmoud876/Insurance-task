@@ -1,0 +1,16 @@
+app/services/claim_service.py:0: error: "type[Claim]" has no attribute "payer_id"  [attr-defined]
+app/services/claim_service.py:0: error: "type[Claim]" has no attribute "service_date"  [attr-defined]
+app/services/claim_service.py:0: error: "type[Claim]" has no attribute "service_date"  [attr-defined]
+app/api/deps.py:0: error: Incompatible types in "yield" (actual type "Any | None", expected type "Session")  [misc]
+app/api/deps.py:0: error: Item "None" of "Any | None" has no attribute "close"  [union-attr]
+app/api/deps.py:0: error: Incompatible types in assignment (expression has type "str", variable has type "Permission")  [assignment]
+app/tests/test_auth_rbac.py:0: error: Argument "roles" to "AuthContext" has incompatible type "set[Role]"; expected "list[Role]"  [arg-type]
+app/tests/test_auth_rbac.py:0: error: Name "auth_ctx" already defined on line 0  [no-redef]
+app/tests/api/test_tenant_isolation.py:0: error: Unexpected keyword argument "permissions" for "AuthContext"  [call-arg]
+app/tests/api/test_tenant_isolation.py:0: note: "AuthContext" defined in "app.core.auth"
+app/tests/api/test_tenant_isolation.py:0: error: Argument "roles" to "AuthContext" has incompatible type "set[Role]"; expected "list[Role]"  [arg-type]
+app/tests/api/test_tenant_isolation.py:0: error: Unexpected keyword argument "permissions" for "AuthContext"  [call-arg]
+app/tests/api/test_tenant_isolation.py:0: note: "AuthContext" defined in "app.core.auth"
+app/tests/api/test_tenant_isolation.py:0: error: Argument "roles" to "AuthContext" has incompatible type "set[Role]"; expected "list[Role]"  [arg-type]
+app/domain/expression.py:0: error: Returning Any from function declared to return "bool"  [no-any-return]
+app/tests/domain/test_expressions.py:0: error: Dict entry 0 has incompatible type "str": "list[object]"; expected "str": "str"  [dict-item]

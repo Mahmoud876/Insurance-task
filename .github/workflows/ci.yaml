@@ -9,9 +9,29 @@ on:
 jobs:
   test-and-lint:
     runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/scrubber_test
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: scrubber_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     defaults:
       run:
         working-directory: .
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -35,11 +55,19 @@ jobs:
 
       - name: Import Linter
         env:
-            PYTHONPATH: ..
+          PYTHONPATH: ..
         run: lint-imports
 
       - name: Pytest
         run: pytest || test $? -eq 5
+
+      - name: Test Alembic Migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/scrubber_test
+        run: |
+          alembic upgrade head
+          alembic downgrade -1
+          alembic upgrade head
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
