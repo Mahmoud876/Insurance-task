@@ -119,7 +119,8 @@ def auth_headers(
         "exp": now + timedelta(hours=1),
     }
     token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
-    return {"Authorization": f"Bearer {token}"}
+    token_str = token.decode("utf-8") if isinstance(token, bytes) else token
+    return {"Authorization": f"Bearer {token_str}"}
 
 
 @pytest.fixture(scope="session")
