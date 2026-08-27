@@ -1,9 +1,10 @@
 import os
 from collections.abc import Generator
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID, uuid4
 
+import jwt
 import pytest
 from alembic.config import Config
 from dotenv import load_dotenv
@@ -13,6 +14,8 @@ from sqlalchemy.orm import Session
 
 from alembic import command
 from app.api.deps import get_db
+from app.config import settings
+from app.core.auth import Role
 from app.db.models.claim import Claim, ClaimStatus
 from app.db.models.patient import Patient
 from app.db.models.provider import Provider
@@ -97,6 +100,26 @@ def make_test_claim(
     )
     db_session.add(claim)
     return claim
+
+
+def auth_headers(
+    tenant_id: UUID,
+    *,
+    roles: list[Role] | None = None,
+    user_id: UUID | None = None,
+) -> dict[str, str]:
+    now = datetime.now(UTC)
+    payload = {
+        "sub": str(user_id or uuid4()),
+        "tenant_id": str(tenant_id),
+        "roles": [r.value for r in (roles or [Role.ADMIN])],
+        "iss": settings.JWT_ISSUER,
+        "aud": settings.JWT_AUDIENCE,
+        "iat": now,
+        "exp": now + timedelta(hours=1),
+    }
+    token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture(scope="session")

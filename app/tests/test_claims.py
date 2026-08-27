@@ -8,6 +8,7 @@ from app.db.models.claim import Claim, ClaimStatus
 from app.db.models.patient import Patient
 from app.db.models.provider import Provider
 from app.db.models.tenant import Tenant
+from app.tests.conftest import auth_headers
 
 
 def create_test_data(db: Session):
@@ -46,9 +47,9 @@ def test_create_claim(client, db_session):
     tenant, patient, provider = create_test_data(db_session)
 
     response = client.post(
-        "/v1/claims",
+        "/api/v1/claims",
+        headers=auth_headers(tenant.id),
         json={
-            "tenant_id": str(tenant.id),
             "patient_id": str(patient.id),
             "provider_id": str(provider.id),
             "total_amount": "100.00",
@@ -79,7 +80,10 @@ def test_get_claim(client, db_session):
     db_session.commit()
     db_session.refresh(claim)
 
-    response = client.get(f"/v1/claims/{claim.id}")
+    response = client.get(
+        f"/api/v1/claims/{claim.id}",
+        headers=auth_headers(tenant.id),
+    )
 
     assert response.status_code == 200
     assert response.json()["id"] == str(claim.id)
@@ -101,7 +105,7 @@ def test_list_claims(client, db_session):
 
     db_session.commit()
 
-    response = client.get("/v1/claims")
+    response = client.get("/api/v1/claims", headers=auth_headers(tenant.id))
 
     assert response.status_code == 200
     assert len(response.json()["items"]) == 3
@@ -132,7 +136,10 @@ def test_filter_claims_by_status(client, db_session):
 
     db_session.commit()
 
-    response = client.get("/v1/claims?status=SUBMITTED")
+    response = client.get(
+        "/api/v1/claims?status=SUBMITTED",
+        headers=auth_headers(tenant.id),
+    )
 
     assert response.status_code == 200
     items = response.json()["items"]
@@ -174,7 +181,10 @@ def test_filter_claims_by_patient(client, db_session):
 
     db_session.commit()
 
-    response = client.get(f"/v1/claims?patient_id={patient.id}")
+    response = client.get(
+        f"/api/v1/claims?patient_id={patient.id}",
+        headers=auth_headers(tenant.id),
+    )
 
     assert response.status_code == 200
 
@@ -199,7 +209,8 @@ def test_cursor_pagination(client, db_session):
 
     db_session.commit()
 
-    response = client.get("/v1/claims?limit=2")
+    headers = auth_headers(tenant.id)
+    response = client.get("/api/v1/claims?limit=2", headers=headers)
 
     assert response.status_code == 200
 
@@ -210,7 +221,7 @@ def test_cursor_pagination(client, db_session):
 
     cursor = data["next_cursor"]
 
-    response2 = client.get(f"/v1/claims?limit=2&cursor={cursor}")
+    response2 = client.get(f"/api/v1/claims?limit=2&cursor={cursor}", headers=headers)
 
     assert response2.status_code == 200
 
@@ -219,7 +230,7 @@ def test_cursor_pagination(client, db_session):
     assert len(data2["items"]) == 1
 
 
-def test_patch_claim_with_etag(client, db_session):
+def test_put_claim_with_etag(client, db_session):
     tenant, patient, provider = create_test_data(db_session)
 
     claim = Claim(
@@ -233,22 +244,23 @@ def test_patch_claim_with_etag(client, db_session):
     db_session.commit()
     db_session.refresh(claim)
 
-    get_response = client.get(f"/v1/claims/{claim.id}")
+    headers = auth_headers(tenant.id)
+    get_response = client.get(f"/api/v1/claims/{claim.id}", headers=headers)
 
     etag = get_response.headers["etag"]
 
-    response = client.patch(
-        f"/v1/claims/{claim.id}",
-        headers={"If-Match": etag},
-        json={"status": "SUBMITTED"},
+    response = client.put(
+        f"/api/v1/claims/{claim.id}",
+        headers={**headers, "If-Match": etag},
+        json={"total_amount": "150.00"},
     )
 
     assert response.status_code == 200
-    assert response.json()["status"] == "SUBMITTED"
+    assert response.json()["total_amount"] == "150.00"
     assert "etag" in response.headers
 
 
-def test_patch_claim_with_stale_etag(client, db_session):
+def test_put_claim_with_stale_etag(client, db_session):
     tenant, patient, provider = create_test_data(db_session)
 
     claim = Claim(
@@ -262,22 +274,23 @@ def test_patch_claim_with_stale_etag(client, db_session):
     db_session.commit()
     db_session.refresh(claim)
 
-    response = client.get(f"/v1/claims/{claim.id}")
+    headers = auth_headers(tenant.id)
+    response = client.get(f"/api/v1/claims/{claim.id}", headers=headers)
 
     old_etag = response.headers["etag"]
 
-    response = client.patch(
-        f"/v1/claims/{claim.id}",
-        headers={"If-Match": old_etag},
-        json={"status": "SUBMITTED"},
+    response = client.put(
+        f"/api/v1/claims/{claim.id}",
+        headers={**headers, "If-Match": old_etag},
+        json={"total_amount": "150.00"},
     )
 
     assert response.status_code == 200
 
-    response = client.patch(
-        f"/v1/claims/{claim.id}",
-        headers={"If-Match": old_etag},
-        json={"status": "PAID"},
+    response = client.put(
+        f"/api/v1/claims/{claim.id}",
+        headers={**headers, "If-Match": old_etag},
+        json={"total_amount": "200.00"},
     )
 
     assert response.status_code == 412
@@ -298,20 +311,25 @@ def test_delete_claim(client, db_session):
     db_session.commit()
     db_session.refresh(claim)
 
-    response = client.delete(f"/v1/claims/{claim.id}")
+    headers = auth_headers(tenant.id)
+    response = client.delete(f"/api/v1/claims/{claim.id}", headers=headers)
 
     assert response.status_code == 204
 
-    response = client.get(f"/v1/claims/{claim.id}")
+    response = client.get(f"/api/v1/claims/{claim.id}", headers=headers)
 
     assert response.status_code == 404
     assert response.headers["content-type"].startswith("application/problem+json")
 
 
-def test_get_missing_claim_returns_problem_json(client):
+def test_get_missing_claim_returns_problem_json(client, db_session):
+    tenant, _, _ = create_test_data(db_session)
     claim_id = uuid4()
 
-    response = client.get(f"/v1/claims/{claim_id}")
+    response = client.get(
+        f"/api/v1/claims/{claim_id}",
+        headers=auth_headers(tenant.id),
+    )
 
     assert response.status_code == 404
     assert response.headers["content-type"].startswith("application/problem+json")
@@ -320,3 +338,9 @@ def test_get_missing_claim_returns_problem_json(client):
 
     assert data["status"] == 404
     assert data["detail"] == "Claim not found"
+
+
+def test_unauthenticated_claims_are_rejected(client):
+    response = client.get("/api/v1/claims")
+
+    assert response.status_code == 401
