@@ -13,7 +13,6 @@ from app.api.errors import (
     http_exception_handler,
     validation_exception_handler,
 )
-from app.api.routes.claims import router as public_claims_router
 from app.api.v1.claims import router as claims_router
 from app.core.auth import AuthContext, decode_jwt_token
 from app.db.session import SessionLocal, apply_tenant_rls, clear_tenant_rls, current_tenant_id
@@ -79,7 +78,6 @@ app.add_middleware(TenantIsolationMiddleware)
 app.add_middleware(AuthenticationMiddleware)
 
 app.include_router(claims_router, prefix="/api/v1")
-app.include_router(public_claims_router, prefix="/v1")
 
 
 @app.get("/health")
