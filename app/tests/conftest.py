@@ -1,15 +1,23 @@
 import os
+<<<<<<< ours
+from pathlib import Path
+=======
 from collections.abc import Generator
 from datetime import date
 from decimal import Decimal
 from uuid import UUID, uuid4
+>>>>>>> theirs
 
 import pytest
 from alembic.config import Config
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
+<<<<<<< ours
+from sqlalchemy.orm import sessionmaker
+=======
 from sqlalchemy.orm import Session
+>>>>>>> theirs
 
 from alembic import command
 from app.api.deps import get_db
@@ -19,7 +27,16 @@ from app.db.models.provider import Provider
 from app.db.session import apply_tenant_rls
 from app.main import app
 
+<<<<<<< ours
+# testcontainers.postgres is a "community module" within the main
+# testcontainers package — there is no testcontainers.community namespace.
+from testcontainers.postgres import PostgresContainer
+
+ALEMBIC_INI = Path(__file__).resolve().parent.parent.parent / "alembic.ini"
+
+=======
 load_dotenv()
+>>>>>>> theirs
 
 _ENSURE_RLS_ROLE = text(
     """
@@ -42,6 +59,55 @@ def ensure_rls_role(connection) -> None:
     connection.execute(_ENSURE_RLS_ROLE)
 
 
+<<<<<<< ours
+@pytest.fixture(scope="session", autouse=True)
+def run_migrations(test_database_url):
+    original_database_url = os.environ.get("DATABASE_URL")
+    os.environ["DATABASE_URL"] = test_database_url
+    try:
+        alembic_config = Config(str(ALEMBIC_INI))
+        command.upgrade(alembic_config, "head")
+        yield
+    finally:
+        if original_database_url is None:
+            os.environ.pop("DATABASE_URL", None)
+        else:
+            os.environ["DATABASE_URL"] = original_database_url
+
+
+@pytest.fixture(scope="session")
+def engine(test_database_url, run_migrations):
+    eng = create_engine(test_database_url)
+    yield eng
+    eng.dispose()
+
+
+@pytest.fixture
+def db_session(engine):
+    SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.rollback()
+        db.execute(text(
+            """
+            TRUNCATE TABLE
+                claim_line,
+                claim,
+                patient,
+                provider,
+                tenant
+            CASCADE
+            """
+        ))
+        db.commit()
+        db.close()
+
+
+@pytest.fixture
+def client(db_session):
+=======
 def assume_rls_role(connection) -> None:
     """Switch to the non-superuser role for the rest of the current transaction."""
     connection.execute(text("SET LOCAL ROLE test_rls_role"))
@@ -167,12 +233,11 @@ def db_session(db_engine) -> Generator[Session, None, None]:
 
 @pytest.fixture
 def client(db_session: Session) -> Generator[TestClient, None, None]:
+>>>>>>> theirs
     def override_get_db():
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
-
     with TestClient(app) as test_client:
         yield test_client
-
     app.dependency_overrides.clear()

@@ -61,6 +61,9 @@ jobs:
       - name: Pytest
         run: pytest || test $? -eq 5
 
+      - name: OpenAPI contract check
+        run: make openapi-check
+
       - name: Test Alembic Migrations
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/scrubber_test
