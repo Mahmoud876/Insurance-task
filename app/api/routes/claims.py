@@ -25,21 +25,17 @@ router = APIRouter(
 
 
 def encode_cursor(claim_id: uuid.UUID) -> str:
-    return base64.urlsafe_b64encode(
-        str(claim_id).encode()
-    ).decode()
+    return base64.urlsafe_b64encode(str(claim_id).encode()).decode()
 
 
 def decode_cursor(cursor: str) -> uuid.UUID:
     try:
-        return uuid.UUID(
-            base64.urlsafe_b64decode(cursor.encode()).decode()
-        )
-    except Exception:
+        return uuid.UUID(base64.urlsafe_b64decode(cursor.encode()).decode())
+    except Exception as err:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid cursor",
-        )
+        ) from err
 
 
 def make_etag(claim: Claim) -> str:
@@ -104,11 +100,7 @@ def list_claims(
         cursor_id = decode_cursor(cursor)
         query = query.where(Claim.id > cursor_id)
 
-    claims = list(
-        db.scalars(
-            query.limit(limit + 1)
-        ).all()
-    )
+    claims = list(db.scalars(query.limit(limit + 1)).all())
 
     next_cursor = None
 

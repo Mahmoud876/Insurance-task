@@ -26,26 +26,28 @@ def problem_response(
 
 async def http_exception_handler(
     request: Request,
-    exc: StarletteHTTPException,
+    exc: Exception,
 ) -> JSONResponse:
-    detail = str(exc.detail)
+    if not isinstance(exc, StarletteHTTPException):
+        raise exc
 
     return problem_response(
         request=request,
         status_code=exc.status_code,
         title="HTTP Error",
-        detail=detail,
+        detail=str(exc.detail),
     )
 
 
 async def validation_exception_handler(
     request: Request,
-    exc: RequestValidationError,
+    exc: Exception,
 ) -> JSONResponse:
+    if not isinstance(exc, RequestValidationError):
+        raise exc
     return problem_response(
         request=request,
         status_code=422,
         title="Validation Error",
         detail="Request validation failed",
     )
-

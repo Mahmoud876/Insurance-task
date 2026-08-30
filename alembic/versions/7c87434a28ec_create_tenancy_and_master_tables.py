@@ -44,6 +44,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenant.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("tenant_id", "id", name="uq_app_user_tenant_id"),
     )
     op.create_index(op.f("ix_app_user_tenant_id"), "app_user", ["tenant_id"], unique=False)
 
@@ -59,6 +60,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenant.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("tenant_id", "id", name="uq_patient_tenant_id"),
     )
     op.create_index(op.f("ix_patient_tenant_id"), "patient", ["tenant_id"], unique=False)
 
@@ -73,6 +75,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenant.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("tenant_id", "id", name="uq_payer_tenant_id"),
     )
     op.create_index(op.f("ix_payer_payer_code"), "payer", ["payer_code"], unique=False)
     op.create_index(op.f("ix_payer_tenant_id"), "payer", ["tenant_id"], unique=False)
@@ -89,6 +92,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenant.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("tenant_id", "id", name="uq_provider_tenant_id"),
     )
     op.create_index(op.f("ix_provider_npi"), "provider", ["npi"], unique=False)
     op.create_index(op.f("ix_provider_tenant_id"), "provider", ["tenant_id"], unique=False)
@@ -105,6 +109,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["payer_id"], ["payer.id"], ondelete="RESTRICT"),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenant.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("tenant_id", "id", name="uq_payer_plan_tenant_id"),
     )
     op.create_index(op.f("ix_payer_plan_payer_id"), "payer_plan", ["payer_id"], unique=False)
     op.create_index(op.f("ix_payer_plan_tenant_id"), "payer_plan", ["tenant_id"], unique=False)
@@ -124,6 +129,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["payer_plan_id"], ["payer_plan.id"], ondelete="RESTRICT"),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenant.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("tenant_id", "id", name="uq_insurance_policy_tenant_id"),
     )
     op.create_index(
         op.f("ix_insurance_policy_patient_id"), "insurance_policy", ["patient_id"], unique=False
