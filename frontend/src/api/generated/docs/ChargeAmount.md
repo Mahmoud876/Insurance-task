@@ -1,4 +1,4 @@
-# FastApi.ChargeAmount
+# DentalClaimsEngine.ChargeAmount
 
 ## Properties
 

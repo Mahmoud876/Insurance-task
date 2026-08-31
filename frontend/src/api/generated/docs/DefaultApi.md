@@ -1,4 +1,4 @@
-# FastApi.DefaultApi
+# DentalClaimsEngine.DefaultApi
 
 All URIs are relative to *http://localhost*
 
@@ -17,9 +17,9 @@ Health Check
 ### Example
 
 ```javascript
-import FastApi from 'fast_api';
+import DentalClaimsEngine from 'dental_claims_engine';
 
-let apiInstance = new FastApi.DefaultApi();
+let apiInstance = new DentalClaimsEngine.DefaultApi();
 apiInstance.healthCheckHealthGet().then((data) => {
   console.log('API called successfully. Returned data: ' + data);
 }, (error) => {

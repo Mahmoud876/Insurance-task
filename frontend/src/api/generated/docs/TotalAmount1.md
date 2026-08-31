@@ -1,4 +1,4 @@
-# FastApi.TotalAmount1
+# DentalClaimsEngine.TotalAmount1
 
 ## Properties
 

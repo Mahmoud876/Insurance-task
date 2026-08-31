@@ -15,19 +15,19 @@ import ApiClient from '../ApiClient';
 import ClaimResponse from './ClaimResponse';
 
 /**
- * The ClaimListResponse model module.
- * @module model/ClaimListResponse
+ * The ClaimBoardPage model module.
+ * @module model/ClaimBoardPage
  * @version 0.1.0
  */
-class ClaimListResponse {
+class ClaimBoardPage {
     /**
-     * Constructs a new <code>ClaimListResponse</code>.
-     * @alias module:model/ClaimListResponse
+     * Constructs a new <code>ClaimBoardPage</code>.
+     * @alias module:model/ClaimBoardPage
      * @param items {Array.<module:model/ClaimResponse>} 
      */
     constructor(items) { 
         
-        ClaimListResponse.initialize(this, items);
+        ClaimBoardPage.initialize(this, items);
     }
 
     /**
@@ -41,15 +41,15 @@ class ClaimListResponse {
     }
 
     /**
-     * Constructs a <code>ClaimListResponse</code> from a plain JavaScript object, optionally creating a new instance.
+     * Constructs a <code>ClaimBoardPage</code> from a plain JavaScript object, optionally creating a new instance.
      * Copies all relevant properties from <code>data</code> to <code>obj</code> if supplied or a new instance if not.
      * @param {Object} data The plain JavaScript object bearing properties of interest.
-     * @param {module:model/ClaimListResponse} obj Optional instance to populate.
-     * @return {module:model/ClaimListResponse} The populated <code>ClaimListResponse</code> instance.
+     * @param {module:model/ClaimBoardPage} obj Optional instance to populate.
+     * @return {module:model/ClaimBoardPage} The populated <code>ClaimBoardPage</code> instance.
      */
     static constructFromObject(data, obj) {
         if (data) {
-            obj = obj || new ClaimListResponse();
+            obj = obj || new ClaimBoardPage();
 
             if (data.hasOwnProperty('items')) {
                 obj['items'] = ApiClient.convertToType(data['items'], [ClaimResponse]);
@@ -65,13 +65,13 @@ class ClaimListResponse {
     }
 
     /**
-     * Validates the JSON data with respect to <code>ClaimListResponse</code>.
+     * Validates the JSON data with respect to <code>ClaimBoardPage</code>.
      * @param {Object} data The plain JavaScript object bearing properties of interest.
-     * @return {boolean} to indicate whether the JSON data is valid with respect to <code>ClaimListResponse</code>.
+     * @return {boolean} to indicate whether the JSON data is valid with respect to <code>ClaimBoardPage</code>.
      */
     static validateJSON(data) {
         // check to make sure all required properties are present in the JSON string
-        for (const property of ClaimListResponse.RequiredProperties) {
+        for (const property of ClaimBoardPage.RequiredProperties) {
             if (!data.hasOwnProperty(property)) {
                 throw new Error("The required field `" + property + "` is not found in the JSON data: " + JSON.stringify(data));
             }
@@ -97,28 +97,28 @@ class ClaimListResponse {
 
 }
 
-ClaimListResponse.RequiredProperties = ["items"];
+ClaimBoardPage.RequiredProperties = ["items"];
 
 /**
  * @member {Array.<module:model/ClaimResponse>} items
  */
-ClaimListResponse.prototype['items'] = undefined;
+ClaimBoardPage.prototype['items'] = undefined;
 
 /**
  * @member {String} next_cursor
  */
-ClaimListResponse.prototype['next_cursor'] = undefined;
+ClaimBoardPage.prototype['next_cursor'] = undefined;
 
 /**
  * @member {Boolean} has_more
  * @default false
  */
-ClaimListResponse.prototype['has_more'] = false;
+ClaimBoardPage.prototype['has_more'] = false;
 
 
 
 
 
 
-export default ClaimListResponse;
+export default ClaimBoardPage;
 
