@@ -4,6 +4,7 @@
 .travis.yml
 README.md
 docs/ChargeAmount.md
+docs/ClaimBoardPage.md
 docs/ClaimCreate.md
 docs/ClaimLineCreate.md
 docs/ClaimLineResponse.md
@@ -26,6 +27,7 @@ src/api/ClaimsApi.js
 src/api/DefaultApi.js
 src/index.js
 src/model/ChargeAmount.js
+src/model/ClaimBoardPage.js
 src/model/ClaimCreate.js
 src/model/ClaimLineCreate.js
 src/model/ClaimLineResponse.js
@@ -41,6 +43,7 @@ src/model/ValidationError.js
 test/api/ClaimsApi.spec.js
 test/api/DefaultApi.spec.js
 test/model/ChargeAmount.spec.js
+test/model/ClaimBoardPage.spec.js
 test/model/ClaimCreate.spec.js
 test/model/ClaimLineCreate.spec.js
 test/model/ClaimLineResponse.spec.js

@@ -1,4 +1,4 @@
-# DentalClaimsEngine.ClaimListResponse
+# DentalClaimsEngine.ClaimBoardPage
 
 ## Properties
 

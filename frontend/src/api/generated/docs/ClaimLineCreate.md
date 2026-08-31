@@ -1,4 +1,4 @@
-# FastApi.ClaimLineCreate
+# DentalClaimsEngine.ClaimLineCreate
 
 ## Properties
 

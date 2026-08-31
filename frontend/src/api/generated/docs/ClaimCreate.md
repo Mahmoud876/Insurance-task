@@ -1,12 +1,15 @@
-# FastApi.ClaimCreate
+# DentalClaimsEngine.ClaimCreate
 
 ## Properties
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**tenantId** | **String** |  | 
 **patientId** | **String** |  | 
 **providerId** | **String** |  | 
-**totalAmount** | [**TotalAmount**](TotalAmount.md) |  | [optional] 
+**payerId** | **String** |  | [optional] 
+**serviceDateFrom** | **Date** |  | 
+**serviceDateTo** | **Date** |  | 
+**totalAmount** | [**TotalAmount**](TotalAmount.md) |  | 
+**tenantId** | **String** |  | [optional] 
 
 

@@ -1,4 +1,4 @@
-# FastApi.LocationInner
+# DentalClaimsEngine.LocationInner
 
 ## Properties
 

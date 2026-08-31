@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
-
+from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.db.models.claim import ClaimStatus
@@ -11,9 +11,9 @@ class ClaimBase(BaseModel):
     patient_id: UUID
     provider_id: UUID
     payer_id: UUID | None = None
-    service_date: date | None = None
+    service_date_from: date
+    service_date_to: date
     total_amount: Decimal = Field(gt=Decimal("0.00"), decimal_places=2)
-
 
 class ClaimCreate(ClaimBase):
     tenant_id: UUID | None = None
@@ -33,10 +33,14 @@ class ClaimResponse(ClaimBase):
 
     id: UUID
     tenant_id: UUID
+    claim_number: str
+    service_date_from: date
+    service_date_to: date
+    readiness_score: int
+    findings_summary: list[dict]
     status: ClaimStatus
     created_at: datetime
     updated_at: datetime
-
 
 class ClaimListResponse(BaseModel):
     items: list[ClaimResponse]

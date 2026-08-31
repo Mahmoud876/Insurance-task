@@ -28,7 +28,7 @@
   var instance;
 
   beforeEach(function() {
-    instance = new DentalClaimsEngine.HTTPValidationError();
+    instance = new DentalClaimsEngine.ClaimBoardPage();
   });
 
   var getProperty = function(object, getter, property) {
@@ -47,16 +47,28 @@
       object[property] = value;
   }
 
-  describe('HTTPValidationError', function() {
-    it('should create an instance of HTTPValidationError', function() {
-      // uncomment below and update the code to test HTTPValidationError
-      //var instance = new DentalClaimsEngine.HTTPValidationError();
-      //expect(instance).to.be.a(DentalClaimsEngine.HTTPValidationError);
+  describe('ClaimBoardPage', function() {
+    it('should create an instance of ClaimBoardPage', function() {
+      // uncomment below and update the code to test ClaimBoardPage
+      //var instance = new DentalClaimsEngine.ClaimBoardPage();
+      //expect(instance).to.be.a(DentalClaimsEngine.ClaimBoardPage);
     });
 
-    it('should have the property detail (base name: "detail")', function() {
-      // uncomment below and update the code to test the property detail
-      //var instance = new DentalClaimsEngine.HTTPValidationError();
+    it('should have the property items (base name: "items")', function() {
+      // uncomment below and update the code to test the property items
+      //var instance = new DentalClaimsEngine.ClaimBoardPage();
+      //expect(instance).to.be();
+    });
+
+    it('should have the property nextCursor (base name: "next_cursor")', function() {
+      // uncomment below and update the code to test the property nextCursor
+      //var instance = new DentalClaimsEngine.ClaimBoardPage();
+      //expect(instance).to.be();
+    });
+
+    it('should have the property hasMore (base name: "has_more")', function() {
+      // uncomment below and update the code to test the property hasMore
+      //var instance = new DentalClaimsEngine.ClaimBoardPage();
       //expect(instance).to.be();
     });
 

@@ -1,9 +1,11 @@
-# FastApi.ClaimStatus
+# DentalClaimsEngine.ClaimStatus
 
 ## Enum
 
 
 * `DRAFT` (value: `"DRAFT"`)
+
+* `SCRUBBED` (value: `"SCRUBBED"`)
 
 * `SUBMITTED` (value: `"SUBMITTED"`)
 

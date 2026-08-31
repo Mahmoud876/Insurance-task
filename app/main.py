@@ -3,6 +3,7 @@ from uuid import UUID
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -77,6 +78,17 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(TenantIsolationMiddleware)
 app.add_middleware(AuthenticationMiddleware)
+
+# CORS must be the outermost middleware so preflight OPTIONS requests
+# (which have no Authorization header) get proper CORS headers before
+# hitting auth/tenant logic. Added last = runs first in Starlette.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(claims_router, prefix="/api/v1")
 app.include_router(public_claims_router, prefix="/v1")
