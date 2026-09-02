@@ -140,9 +140,10 @@ class ClaimService:
             total_amount=payload.total_amount,
             status=ClaimStatus.DRAFT,
         )
-        if payload.service_date is not None:
-            claim.service_date_from = payload.service_date
-            claim.service_date_to = payload.service_date
+        if payload.service_date_from is not None:
+            claim.service_date_from = payload.service_date_from
+        if payload.service_date_to is not None:
+            claim.service_date_to = payload.service_date_to
         db.add(claim)
         db.commit()
         db.refresh(claim)

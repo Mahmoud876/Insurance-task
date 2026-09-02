@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 
@@ -11,7 +11,7 @@ JWT_AUDIENCE = "dental-claims-api"
 TENANT_ID = "e4006cf1-135c-4107-9532-36efcdc53e39"
 USER_ID = str(uuid.uuid4())
 
-now = datetime.now(timezone.utc)
+now = datetime.now(UTC)
 
 payload = {
     "sub": USER_ID,

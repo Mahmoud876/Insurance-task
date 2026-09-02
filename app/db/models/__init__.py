@@ -4,6 +4,10 @@ from app.db.models.claim_attachment import ClaimAttachment
 from app.db.models.claim_line import ClaimLine
 from app.db.models.insurance_policy import InsurancePolicy
 from app.db.models.patient import Patient
+from app.db.models.patient_procedure_history import (
+    PatientProcedureHistory,
+    ProcedureHistorySource,
+)
 from app.db.models.payer import Payer
 from app.db.models.payer_plan import PayerPlan
 from app.db.models.provider import Provider
@@ -23,4 +27,6 @@ __all__ = [
     "ClaimLine",
     "ClaimAttachment",
     "AuditEvent",
+    "PatientProcedureHistory",
+    "ProcedureHistorySource",
 ]

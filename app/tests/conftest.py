@@ -6,13 +6,13 @@ from uuid import UUID, uuid4
 
 import jwt
 import pytest
-from alembic import command
 from alembic.config import Config
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
+from alembic import command
 from app.api.deps import get_db
 from app.config import settings
 from app.core.auth import Role

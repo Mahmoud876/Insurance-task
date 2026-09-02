@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import uuid
+from datetime import date
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import Date, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -28,6 +29,9 @@ class InsurancePolicy(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
     policy_number: Mapped[str] = mapped_column(String(100), nullable=False)
     group_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+    effective_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    termination_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
 
     tenant: Mapped[Tenant] = relationship("Tenant")
     patient: Mapped[Patient] = relationship("Patient", back_populates="policies")

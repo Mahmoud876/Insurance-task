@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 OPENAPI_PATH = ROOT / "openapi.json"
 OUTPUT_PATH = ROOT / "frontend" / "src" / "mocks" / "handlers.js"
@@ -29,12 +28,12 @@ def main() -> None:
                 "  }),"
             )
 
-    content = """import { http, HttpResponse } from 'msw'
+    content = """import {{ http, HttpResponse }} from 'msw'
 
 export const handlers = [
-%s
+{}
 ]
-""" % "\n\n".join(handlers)
+""".format("\n\n".join(handlers))
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(content, encoding="utf-8")

@@ -8,6 +8,8 @@ from sqlalchemy import Date, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.db.models.claim import Claim
+from app.db.models.patient_procedure_history import PatientProcedureHistory
 
 if TYPE_CHECKING:
     from app.db.models.insurance_policy import InsurancePolicy
@@ -27,4 +29,10 @@ class Patient(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     tenant: Mapped[Tenant] = relationship("Tenant")
     policies: Mapped[list[InsurancePolicy]] = relationship(
         "InsurancePolicy", back_populates="patient"
+    )
+
+    claims: Mapped[list[Claim]] = relationship("Claim", back_populates="patient")
+
+    procedure_history: Mapped[list[PatientProcedureHistory]] = relationship(
+        "PatientProcedureHistory", back_populates="patient", cascade="all, delete-orphan"
     )

@@ -11,6 +11,7 @@ from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.db.models.patient import Patient
 
 if TYPE_CHECKING:
     from app.db.models.claim_attachment import ClaimAttachment
@@ -69,6 +70,8 @@ class Claim(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     findings_summary: Mapped[list[dict[str, Any]]] = mapped_column(
         JSON, nullable=False, default=list
     )
+
+    patient: Mapped[Patient] = relationship("Patient", back_populates="claims")
 
     lines: Mapped[list[ClaimLine]] = relationship("ClaimLine", back_populates="claim")
     attachments: Mapped[list[ClaimAttachment]] = relationship(
