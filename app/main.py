@@ -14,6 +14,7 @@ from app.api.errors import (
     http_exception_handler,
     validation_exception_handler,
 )
+from app.api.routes.auth import router as auth_router
 from app.api.routes.claims import router as public_claims_router
 from app.api.v1.claims import router as claims_router
 from app.api.v1.reference import router as reference_router
@@ -37,7 +38,7 @@ app.add_exception_handler(
 
 class TenantIsolationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        if request.url.path == "/health":
+        if request.url.path == "/health" or request.url.path.startswith("/auth"):
             return await call_next(request)
 
         auth_ctx: AuthContext | None = getattr(request.state, "auth_context", None)
@@ -58,7 +59,7 @@ class TenantIsolationMiddleware(BaseHTTPMiddleware):
 
 class AuthenticationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        if request.url.path == "/health":
+        if request.url.path == "/health" or request.url.path.startswith("/auth"):
             return await call_next(request)
 
         auth_header = request.headers.get("Authorization")
@@ -85,12 +86,13 @@ app.add_middleware(AuthenticationMiddleware)
 # hitting auth/tenant logic. Added last = runs first in Starlette.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 app.include_router(claims_router, prefix="/api/v1")
 app.include_router(public_claims_router, prefix="/v1")
 app.include_router(reference_router, prefix="/v1")
