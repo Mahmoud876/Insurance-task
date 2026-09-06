@@ -1,21 +1,22 @@
 """add procedure and diagnosis tables
 
 Revision ID: 7ca8d6453398
-Revises: ac315f2b1dc4
+Revises: d4e8f2a1b7c9
 Create Date: 2026-08-20 13:26:07.888097
 
 """
-from typing import Sequence, Union
 
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "7ca8d6453398"
-down_revision: Union[str, Sequence[str], None] = "ac315f2b1dc4"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "d4e8f2a1b7c9"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -33,7 +34,6 @@ def upgrade() -> None:
         sa.Column("code_system", sa.Text(), nullable=False),
         sa.Column("short_desc", sa.Text(), nullable=False),
         sa.Column("category", sa.Text(), nullable=False),
-
         sa.Column(
             "requires_tooth",
             sa.Boolean(),
@@ -58,13 +58,11 @@ def upgrade() -> None:
             nullable=False,
             server_default=sa.false(),
         ),
-
         sa.Column(
             "allowed_surfaces",
             sa.ARRAY(sa.Text()),
             nullable=True,
         ),
-
         sa.Column(
             "is_posterior_only",
             sa.Boolean(),
@@ -83,16 +81,13 @@ def upgrade() -> None:
             nullable=False,
             server_default=sa.false(),
         ),
-
         sa.Column(
             "typical_documentation",
             sa.ARRAY(sa.Text()),
             nullable=True,
         ),
-
         sa.Column("valid_from", sa.Date(), nullable=False),
         sa.Column("valid_to", sa.Date(), nullable=True),
-
         sa.CheckConstraint(
             "NOT (is_posterior_only AND is_anterior_only)",
             name="ck_procedure_not_both_posterior_anterior",
@@ -121,14 +116,12 @@ def upgrade() -> None:
             server_default="ICD10CM",
         ),
         sa.Column("description", sa.Text(), nullable=False),
-
         sa.Column(
             "is_billable",
             sa.Boolean(),
             nullable=False,
             server_default=sa.true(),
         ),
-
         sa.Column("valid_from", sa.Date(), nullable=False),
         sa.Column("valid_to", sa.Date(), nullable=True),
     )
@@ -155,12 +148,10 @@ def upgrade() -> None:
             sa.Text(),
             nullable=False,
         ),
-
         sa.PrimaryKeyConstraint(
             "procedure_code",
             "diagnosis_code",
         ),
-
         sa.CheckConstraint(
             "compatibility IN ('EXPECTED', 'ALLOWED', 'UNLIKELY')",
             name="ck_procedure_diagnosis_compatibility",
@@ -174,10 +165,6 @@ def downgrade() -> None:
     op.drop_table("procedure_diagnosis_compat")
     op.drop_table("diagnosis_code")
 
-    op.execute(
-        "DROP INDEX IF EXISTS idx_proc_code_trgm"
-    )
+    op.execute("DROP INDEX IF EXISTS idx_proc_code_trgm")
 
     op.drop_table("procedure_code")
-
-   

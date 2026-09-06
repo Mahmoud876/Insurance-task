@@ -1,21 +1,55 @@
-import uuid
+from datetime import date, datetime
 from decimal import Decimal
-
-from pydantic import BaseModel, ConfigDict
+from uuid import UUID
+from typing import Any
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.db.models.claim import ClaimStatus
 
 
-class ClaimCreate(BaseModel):
-    tenant_id: uuid.UUID
-    patient_id: uuid.UUID
-    provider_id: uuid.UUID
-    total_amount: Decimal = Decimal("0.00")
+class ClaimBase(BaseModel):
+    patient_id: UUID
+    provider_id: UUID
+    payer_id: UUID | None = None
+    service_date_from: date
+    service_date_to: date
+    total_amount: Decimal = Field(gt=Decimal("0.00"), decimal_places=2)
+
+class ClaimCreate(ClaimBase):
+    tenant_id: UUID | None = None
 
 
 class ClaimUpdate(BaseModel):
+    patient_id: UUID | None = None
+    provider_id: UUID | None = None
+    payer_id: UUID | None = None
+    service_date: date | None = None
+    total_amount: Decimal | None = Field(default=None, gt=Decimal("0.00"), decimal_places=2)
     status: ClaimStatus | None = None
-    total_amount: Decimal | None = None
+
+
+class ClaimResponse(ClaimBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    tenant_id: UUID
+    claim_number: str
+    service_date_from: date
+    service_date_to: date
+    readiness_score: int
+    findings_summary: list[dict]
+    status: ClaimStatus
+    created_at: datetime
+    updated_at: datetime
+
+class ClaimListResponse(BaseModel):
+    items: list[ClaimResponse]
+    next_cursor: str | None = None
+    has_more: bool = False
+
+
+class ClaimBoardPage(ClaimListResponse):
+    pass
 
 
 class ClaimLineCreate(BaseModel):
@@ -28,23 +62,8 @@ class ClaimLineCreate(BaseModel):
 class ClaimLineResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: uuid.UUID
+    id: UUID
     procedure_code: str
     tooth_number: str | None
     surface: str | None
     charge_amount: Decimal
-
-
-class ClaimResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: uuid.UUID
-    patient_id: uuid.UUID
-    provider_id: uuid.UUID
-    status: ClaimStatus
-    total_amount: Decimal
-
-
-class ClaimListResponse(BaseModel):
-    items: list[ClaimResponse]
-    next_cursor: str | None = None
