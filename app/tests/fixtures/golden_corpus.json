@@ -1,0 +1,821 @@
+[
+  {
+    "claim_id": "CLM-000",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0000",
+      "first_name": "Angela",
+      "last_name": "Brewer",
+      "dob": "1975-10-09",
+      "gender": "F"
+    },
+    "provider": {
+      "npi": "3273277874",
+      "first_name": "Nathan",
+      "last_name": "Bennett"
+    },
+    "service_date_from": "2026-02-11",
+    "service_date_to": "2026-08-12",
+    "total_amount": "210.40",
+    "line_items": [
+      {
+        "procedure_code": "D0120",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "210.40"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-001",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0001",
+      "first_name": "David",
+      "last_name": "Shaw",
+      "dob": "1977-12-04",
+      "gender": "F"
+    },
+    "provider": {
+      "npi": "4797265611",
+      "first_name": "Patricia",
+      "last_name": "Howell"
+    },
+    "service_date_from": "2026-06-29",
+    "service_date_to": "2026-10-16",
+    "total_amount": "510.35",
+    "line_items": [
+      {
+        "procedure_code": "D1110",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "264.50"
+      },
+      {
+        "procedure_code": "D2140",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "245.85"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-002",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0002",
+      "first_name": "Daniel",
+      "last_name": "Marshall",
+      "dob": "1946-07-15",
+      "gender": "M"
+    },
+    "provider": {
+      "npi": "8698992346",
+      "first_name": "Connie",
+      "last_name": "Shaffer"
+    },
+    "service_date_from": "2025-10-06",
+    "service_date_to": "2026-10-25",
+    "total_amount": "659.37",
+    "line_items": [
+      {
+        "procedure_code": "D2140",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "198.95"
+      },
+      {
+        "procedure_code": "D2392",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "175.66"
+      },
+      {
+        "procedure_code": "D2740",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "284.76"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-003",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0003",
+      "first_name": "Michael",
+      "last_name": "White",
+      "dob": "1947-06-07",
+      "gender": "M"
+    },
+    "provider": {
+      "npi": "1047844586",
+      "first_name": "Kyle",
+      "last_name": "Carr"
+    },
+    "service_date_from": "2026-08-30",
+    "service_date_to": "2026-10-19",
+    "total_amount": "271.53",
+    "line_items": [
+      {
+        "procedure_code": "D2392",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "271.53"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-004",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0004",
+      "first_name": "Jennifer",
+      "last_name": "Webb",
+      "dob": "2003-11-19",
+      "gender": "F"
+    },
+    "provider": {
+      "npi": "8943916600",
+      "first_name": "Abigail",
+      "last_name": "Moreno"
+    },
+    "service_date_from": "2026-07-27",
+    "service_date_to": "2026-10-09",
+    "total_amount": "474.27",
+    "line_items": [
+      {
+        "procedure_code": "D2740",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "258.91"
+      },
+      {
+        "procedure_code": "D4355",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "215.36"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-005",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0005",
+      "first_name": "Justin",
+      "last_name": "Watson",
+      "dob": "1977-03-28",
+      "gender": "M"
+    },
+    "provider": {
+      "npi": "8236022400",
+      "first_name": "Robin",
+      "last_name": "James"
+    },
+    "service_date_from": "2025-11-29",
+    "service_date_to": "2026-10-07",
+    "total_amount": "813.17",
+    "line_items": [
+      {
+        "procedure_code": "D4355",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "284.45"
+      },
+      {
+        "procedure_code": "D7210",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "274.66"
+      },
+      {
+        "procedure_code": "D0274",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "254.06"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-006",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0006",
+      "first_name": "Elizabeth",
+      "last_name": "Rivera",
+      "dob": "1994-06-14",
+      "gender": "M"
+    },
+    "provider": {
+      "npi": "3487166668",
+      "first_name": "Jeffrey",
+      "last_name": "Mitchell"
+    },
+    "service_date_from": "2025-11-21",
+    "service_date_to": "2026-09-25",
+    "total_amount": "140.03",
+    "line_items": [
+      {
+        "procedure_code": "D7210",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "140.03"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-007",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0007",
+      "first_name": "Maria",
+      "last_name": "Perkins",
+      "dob": "1995-03-03",
+      "gender": "M"
+    },
+    "provider": {
+      "npi": "2989098351",
+      "first_name": "Gregory",
+      "last_name": "Alvarado"
+    },
+    "service_date_from": "2026-03-07",
+    "service_date_to": "2026-08-25",
+    "total_amount": "354.00",
+    "line_items": [
+      {
+        "procedure_code": "D0274",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "201.99"
+      },
+      {
+        "procedure_code": "D2330",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "152.01"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-008",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0008",
+      "first_name": "Robert",
+      "last_name": "Benton",
+      "dob": "1970-05-23",
+      "gender": "F"
+    },
+    "provider": {
+      "npi": "9181906277",
+      "first_name": "Jodi",
+      "last_name": "Montes"
+    },
+    "service_date_from": "2026-03-14",
+    "service_date_to": "2026-09-05",
+    "total_amount": "552.17",
+    "line_items": [
+      {
+        "procedure_code": "D2330",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "162.47"
+      },
+      {
+        "procedure_code": "D2750",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "263.71"
+      },
+      {
+        "procedure_code": "D4341",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "125.99"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-009",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0009",
+      "first_name": "Chris",
+      "last_name": "Ward",
+      "dob": "1996-06-26",
+      "gender": "F"
+    },
+    "provider": {
+      "npi": "3384446734",
+      "first_name": "Patricia",
+      "last_name": "Johnson"
+    },
+    "service_date_from": "2026-09-21",
+    "service_date_to": "2026-09-07",
+    "total_amount": "199.96",
+    "line_items": [
+      {
+        "procedure_code": "D2750",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "199.96"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-010",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0010",
+      "first_name": "Lisa",
+      "last_name": "Norton",
+      "dob": "2005-01-24",
+      "gender": "F"
+    },
+    "provider": {
+      "npi": "5731421610",
+      "first_name": "Nancy",
+      "last_name": "Montoya"
+    },
+    "service_date_from": "2025-10-13",
+    "service_date_to": "2026-11-06",
+    "total_amount": "402.51",
+    "line_items": [
+      {
+        "procedure_code": "D4341",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "155.69"
+      },
+      {
+        "procedure_code": "D4910",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "246.82"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-011",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0011",
+      "first_name": "Natalie",
+      "last_name": "Brown",
+      "dob": "1981-08-22",
+      "gender": "M"
+    },
+    "provider": {
+      "npi": "1059615852",
+      "first_name": "Andrea",
+      "last_name": "Foster"
+    },
+    "service_date_from": "2025-11-08",
+    "service_date_to": "2026-09-01",
+    "total_amount": "422.87",
+    "line_items": [
+      {
+        "procedure_code": "D4910",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "94.40"
+      },
+      {
+        "procedure_code": "D7140",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "109.86"
+      },
+      {
+        "procedure_code": "D2391",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "218.61"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-012",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0012",
+      "first_name": "Jonathan",
+      "last_name": "Peters",
+      "dob": "1999-08-28",
+      "gender": "M"
+    },
+    "provider": {
+      "npi": "1566172256",
+      "first_name": "Yolanda",
+      "last_name": "Davis"
+    },
+    "service_date_from": "2026-07-04",
+    "service_date_to": "2026-11-29",
+    "total_amount": "224.86",
+    "line_items": [
+      {
+        "procedure_code": "D7140",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "224.86"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-013",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0013",
+      "first_name": "Christopher",
+      "last_name": "Alvarez",
+      "dob": "1952-07-22",
+      "gender": "F"
+    },
+    "provider": {
+      "npi": "4827549632",
+      "first_name": "Gary",
+      "last_name": "Brown"
+    },
+    "service_date_from": "2026-03-21",
+    "service_date_to": "2026-11-08",
+    "total_amount": "322.13",
+    "line_items": [
+      {
+        "procedure_code": "D2391",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "227.08"
+      },
+      {
+        "procedure_code": "D2950",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "95.05"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-014",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0014",
+      "first_name": "Stephanie",
+      "last_name": "Vega",
+      "dob": "1979-06-14",
+      "gender": "M"
+    },
+    "provider": {
+      "npi": "3984020714",
+      "first_name": "Jennifer",
+      "last_name": "Castro"
+    },
+    "service_date_from": "2026-09-12",
+    "service_date_to": "2026-11-27",
+    "total_amount": "649.94",
+    "line_items": [
+      {
+        "procedure_code": "D2950",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "280.86"
+      },
+      {
+        "procedure_code": "D0220",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "276.35"
+      },
+      {
+        "procedure_code": "D0120",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "92.73"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-015",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0015",
+      "first_name": "Patrick",
+      "last_name": "Grant",
+      "dob": "1981-08-11",
+      "gender": "M"
+    },
+    "provider": {
+      "npi": "2499089563",
+      "first_name": "Lindsey",
+      "last_name": "Williams"
+    },
+    "service_date_from": "2025-10-12",
+    "service_date_to": "2026-11-18",
+    "total_amount": "235.20",
+    "line_items": [
+      {
+        "procedure_code": "D0220",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "235.20"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-016",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0016",
+      "first_name": "Brad",
+      "last_name": "Stafford",
+      "dob": "1982-05-05",
+      "gender": "F"
+    },
+    "provider": {
+      "npi": "2964723238",
+      "first_name": "Christian",
+      "last_name": "Grant"
+    },
+    "service_date_from": "2025-12-17",
+    "service_date_to": "2026-10-06",
+    "total_amount": "464.18",
+    "line_items": [
+      {
+        "procedure_code": "D0120",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "190.91"
+      },
+      {
+        "procedure_code": "D1110",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "273.27"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-017",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0017",
+      "first_name": "Kimberly",
+      "last_name": "Morrison",
+      "dob": "1960-05-30",
+      "gender": "F"
+    },
+    "provider": {
+      "npi": "2320999346",
+      "first_name": "Maria",
+      "last_name": "Holt"
+    },
+    "service_date_from": "2026-08-06",
+    "service_date_to": "2026-11-29",
+    "total_amount": "543.43",
+    "line_items": [
+      {
+        "procedure_code": "D1110",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "112.50"
+      },
+      {
+        "procedure_code": "D2140",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "232.33"
+      },
+      {
+        "procedure_code": "D2392",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "198.60"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-018",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0018",
+      "first_name": "Timothy",
+      "last_name": "Williamson",
+      "dob": "1987-08-30",
+      "gender": "M"
+    },
+    "provider": {
+      "npi": "7272746539",
+      "first_name": "Sarah",
+      "last_name": "Hicks"
+    },
+    "service_date_from": "2026-07-26",
+    "service_date_to": "2026-10-23",
+    "total_amount": "201.84",
+    "line_items": [
+      {
+        "procedure_code": "D2140",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "201.84"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-019",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0019",
+      "first_name": "Sara",
+      "last_name": "Fitzgerald",
+      "dob": "1952-06-29",
+      "gender": "M"
+    },
+    "provider": {
+      "npi": "1206935041",
+      "first_name": "Monica",
+      "last_name": "Sanders"
+    },
+    "service_date_from": "2026-09-14",
+    "service_date_to": "2026-10-13",
+    "total_amount": "477.57",
+    "line_items": [
+      {
+        "procedure_code": "D2392",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "217.94"
+      },
+      {
+        "procedure_code": "D2740",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "259.63"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-020",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0020",
+      "first_name": "Rachel",
+      "last_name": "Barnes",
+      "dob": "2000-06-03",
+      "gender": "F"
+    },
+    "provider": {
+      "npi": "5712861778",
+      "first_name": "Randy",
+      "last_name": "Barker"
+    },
+    "service_date_from": "2026-03-28",
+    "service_date_to": "2026-10-18",
+    "total_amount": "593.12",
+    "line_items": [
+      {
+        "procedure_code": "D2740",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "245.90"
+      },
+      {
+        "procedure_code": "D4355",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "240.72"
+      },
+      {
+        "procedure_code": "D7210",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "106.50"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-021",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0021",
+      "first_name": "Angela",
+      "last_name": "Fowler",
+      "dob": "1971-04-27",
+      "gender": "F"
+    },
+    "provider": {
+      "npi": "4314978659",
+      "first_name": "Troy",
+      "last_name": "Nelson"
+    },
+    "service_date_from": "2026-06-21",
+    "service_date_to": "2026-09-11",
+    "total_amount": "191.78",
+    "line_items": [
+      {
+        "procedure_code": "D4355",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "191.78"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-022",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0022",
+      "first_name": "Cynthia",
+      "last_name": "Kennedy",
+      "dob": "1971-12-03",
+      "gender": "M"
+    },
+    "provider": {
+      "npi": "1157220010",
+      "first_name": "Kelly",
+      "last_name": "Meyers"
+    },
+    "service_date_from": "2026-03-08",
+    "service_date_to": "2026-09-20",
+    "total_amount": "217.70",
+    "line_items": [
+      {
+        "procedure_code": "D7210",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "114.06"
+      },
+      {
+        "procedure_code": "D0274",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "103.64"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-023",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0023",
+      "first_name": "Keith",
+      "last_name": "Stone",
+      "dob": "1992-01-11",
+      "gender": "M"
+    },
+    "provider": {
+      "npi": "4197939220",
+      "first_name": "Mark",
+      "last_name": "Melendez"
+    },
+    "service_date_from": "2026-02-21",
+    "service_date_to": "2026-11-27",
+    "total_amount": "533.54",
+    "line_items": [
+      {
+        "procedure_code": "D0274",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "97.90"
+      },
+      {
+        "procedure_code": "D2330",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "153.42"
+      },
+      {
+        "procedure_code": "D2750",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "282.22"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-024",
+    "status": "draft",
+    "patient": {
+      "patient_id": "PT-0024",
+      "first_name": "Alexandra",
+      "last_name": "Rodriguez",
+      "dob": "1982-04-19",
+      "gender": "M"
+    },
+    "provider": {
+      "npi": "7752942555",
+      "first_name": "Sarah",
+      "last_name": "Smith"
+    },
+    "service_date_from": "2026-04-02",
+    "service_date_to": "2026-10-19",
+    "total_amount": "263.39",
+    "line_items": [
+      {
+        "procedure_code": "D2330",
+        "tooth_number": null,
+        "surface": null,
+        "charge_amount": "263.39"
+      }
+    ]
+  }
+]
