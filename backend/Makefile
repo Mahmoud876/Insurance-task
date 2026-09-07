@@ -13,7 +13,7 @@ endif
 VENV_PYTHON := $(VENV_BIN)/python
 VENV_PIP := $(VENV_BIN)/pip
 
-.PHONY: venv setup install dev build lint lint-fix test compose-up compose-down migrate migrate-down seed clean help ci
+.PHONY: venv setup install dev build lint lint-fix openapi-check test compose-up compose-down migrate migrate-down seed clean help ci
 
 help:
 	@echo "Available commands:"
@@ -58,6 +58,9 @@ lint:
 lint-fix:
 	$(VENV_BIN)/ruff check --fix app tests
 	$(VENV_BIN)/mypy app | $(VENV_BIN)/mypy-baseline filter
+
+openapi-check:
+	python -c "from app.main import app; import json; json.dumps(app.openapi()); print('OpenAPI schema generated successfully.')"
 
 test:
 	$(VENV_BIN)/pytest tests/ -v --cov=app --cov-report=term-missing

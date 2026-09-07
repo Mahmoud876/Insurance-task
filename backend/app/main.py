@@ -10,6 +10,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 
+from app.core import user as _user  # noqa: F401
 from app.core.database_session import (
     SessionLocal,
     apply_tenant_rls,
@@ -21,12 +22,22 @@ from app.core.errors import (
     validation_exception_handler,
 )
 from app.core.security.auth import AuthContext, decode_jwt_token
+from app.modules.analytics.api import router as analytics_router
+from app.modules.autofix.api.autofix import router as autofix_router
 from app.modules.claims.api.claims import router as claims_router
+from app.modules.claims.models import (  # noqa: F401
+    claim_attachment,
+    claim_line,
+    insurance_policy,
+    patient,
+    patient_procedure_history,
+    provider,
+)
+from app.modules.ocr.api.ocr import router as ocr_router
+from app.modules.payers import payer, payer_plan  # noqa: F401
+from app.modules.preauth.api.preauth import router as preauth_router
 from app.modules.scrubber.api.scrub import router as scrub_router
-from app.api.routes.auth import router as auth_router
-from app.modules.reference import router as reference_router
-from app.core.security import AuthContext, decode_jwt_token
-from app.db.models import SessionLocal, apply_tenant_rls, clear_tenant_rls, current_tenant_id
+from app.modules.simulation.api.simulation import router as simulation_router
 
 load_dotenv()
 
@@ -99,10 +110,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth_router)
 app.include_router(claims_router, prefix="/api/v1")
+app.include_router(autofix_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
 app.include_router(scrub_router, prefix="/api/v1")
-app.include_router(reference_router, prefix="/api/v1")
+app.include_router(simulation_router, prefix="/api")
+app.include_router(ocr_router, prefix="/api")
+app.include_router(preauth_router, prefix="/api")
 
 
 @app.get("/health")
