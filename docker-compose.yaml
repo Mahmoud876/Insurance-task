@@ -41,7 +41,7 @@ services:
 
   api:
     build:
-      context: ./api
+      context: ./backend
       dockerfile: Dockerfile
     depends_on:
       postgres:

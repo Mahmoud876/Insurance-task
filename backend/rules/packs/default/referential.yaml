@@ -1,0 +1,4 @@
+pack_id: "DEFAULT_REFERENTIAL"
+version: "1.0.0"
+description: "Default referential rules"
+rules: []

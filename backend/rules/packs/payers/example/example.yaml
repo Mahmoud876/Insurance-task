@@ -1,0 +1,4 @@
+pack_id: "EXAMPLE_PAYER"
+version: "1.0.0"
+description: "Example payer-specific rules"
+rules: []

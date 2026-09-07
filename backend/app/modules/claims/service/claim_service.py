@@ -1,0 +1,214 @@
+import base64
+from datetime import date, datetime
+from uuid import UUID
+
+from fastapi import HTTPException, status
+from sqlalchemy import String, cast, select
+from sqlalchemy.orm import Session
+
+from app.core.security.auth import AuthContext
+from app.core.security.rbac import ROLE_PERMISSIONS, Permission
+from app.modules.claims.models.claim import Claim, ClaimStatus
+from app.modules.claims.models.claim_line import ClaimLine
+from app.modules.claims.schemas.claim import (
+    ClaimBoardPage,
+    ClaimCreate,
+    ClaimLineCreate,
+    ClaimLineResponse,
+    ClaimResponse,
+    ClaimUpdate,
+)
+
+
+class ClaimService:
+    @staticmethod
+    def _verify_permission(auth_ctx: AuthContext, required_permission: Permission | str) -> None:
+        permissions = {
+            permission
+            for role in getattr(auth_ctx, "roles", []) or []
+            for permission in ROLE_PERMISSIONS.get(role, set())
+        }
+        target = (
+            required_permission.value
+            if isinstance(required_permission, Permission)
+            else str(required_permission)
+        )
+        values = {
+            permission.value if hasattr(permission, "value") else str(permission)
+            for permission in permissions
+        }
+        if target not in values:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail=f"Permission '{target}' required"
+            )
+
+    @staticmethod
+    def make_etag(claim: Claim | ClaimResponse) -> str:
+        return f'"{claim.updated_at.isoformat()}"'
+
+    @staticmethod
+    def _get_tenant_claim(db: Session, claim_id: UUID, auth_ctx: AuthContext) -> Claim:
+        claim = db.scalar(
+            select(Claim).where(Claim.id == claim_id, Claim.tenant_id == auth_ctx.tenant_id)
+        )
+        if claim is None:
+            raise HTTPException(status_code=404, detail="Claim not found")
+        return claim
+
+    @staticmethod
+    def list_claims(
+        db: Session,
+        auth_ctx: AuthContext,
+        *,
+        cursor: str | None = None,
+        limit: int = 25,
+        status_filter: ClaimStatus | None = None,
+        patient_id: UUID | None = None,
+        patient_search: str | None = None,
+        payer_id: UUID | None = None,
+        service_date_from: date | None = None,
+        service_date_to: date | None = None,
+    ) -> ClaimBoardPage:
+        ClaimService._verify_permission(auth_ctx, Permission.CLAIM_READ)
+        statement = select(Claim).where(Claim.tenant_id == auth_ctx.tenant_id)
+        if status_filter:
+            statement = statement.where(Claim.status == status_filter)
+        if patient_id:
+            statement = statement.where(Claim.patient_id == patient_id)
+        if payer_id:
+            statement = statement.where(Claim.payer_id == payer_id)
+        if service_date_from:
+            statement = statement.where(Claim.service_date_from >= service_date_from)
+        if service_date_to:
+            statement = statement.where(Claim.service_date_to <= service_date_to)
+        if patient_search:
+            statement = statement.where(cast(Claim.patient_id, String).ilike(f"%{patient_search}%"))
+        if cursor:
+            try:
+                cursor_date, cursor_id = base64.b64decode(cursor.encode()).decode().split("::")
+                parsed_date = datetime.fromisoformat(cursor_date)
+                statement = statement.where(
+                    (Claim.created_at < parsed_date)
+                    | ((Claim.created_at == parsed_date) & (Claim.id < UUID(cursor_id)))
+                )
+            except Exception as error:
+                raise HTTPException(status_code=400, detail="Invalid cursor") from error
+        results = db.scalars(
+            statement.order_by(Claim.created_at.desc(), Claim.id.desc()).limit(limit + 1)
+        ).all()
+        has_more = len(results) > limit
+        items = results[:limit]
+        next_cursor = None
+        if has_more and items:
+            last = items[-1]
+            next_cursor = base64.b64encode(
+                f"{last.created_at.isoformat()}::{last.id}".encode()
+            ).decode()
+        return ClaimBoardPage(
+            items=[ClaimResponse.model_validate(item) for item in items],
+            next_cursor=next_cursor,
+            has_more=has_more,
+        )
+
+    @staticmethod
+    def get_claim(db: Session, claim_id: UUID, auth_ctx: AuthContext) -> ClaimResponse:
+        ClaimService._verify_permission(auth_ctx, Permission.CLAIM_READ)
+        return ClaimResponse.model_validate(ClaimService._get_tenant_claim(db, claim_id, auth_ctx))
+
+    @staticmethod
+    def create_claim(db: Session, payload: ClaimCreate, auth_ctx: AuthContext) -> ClaimResponse:
+        ClaimService._verify_permission(auth_ctx, Permission.CLAIM_CREATE)
+        claim = Claim(
+            tenant_id=auth_ctx.tenant_id,
+            patient_id=payload.patient_id,
+            provider_id=payload.provider_id,
+            payer_id=payload.payer_id,
+            total_amount=payload.total_amount,
+            status=ClaimStatus.DRAFT,
+            service_date_from=payload.service_date_from,
+            service_date_to=payload.service_date_to,
+        )
+        db.add(claim)
+        db.commit()
+        db.refresh(claim)
+        return ClaimResponse.model_validate(claim)
+
+    @staticmethod
+    def update_claim(
+        db: Session,
+        claim_id: UUID,
+        payload: ClaimUpdate,
+        auth_ctx: AuthContext,
+        if_match: str | None = None,
+    ) -> ClaimResponse:
+        ClaimService._verify_permission(auth_ctx, Permission.CLAIM_UPDATE)
+        claim = ClaimService._get_tenant_claim(db, claim_id, auth_ctx)
+        if if_match is not None and if_match != ClaimService.make_etag(claim):
+            raise HTTPException(status_code=412, detail="Claim has been modified")
+        if claim.status == ClaimStatus.SUBMITTED:
+            raise HTTPException(status_code=400, detail="Cannot update a submitted claim")
+        for field, value in payload.model_dump(exclude_unset=True).items():
+            setattr(claim, field, value)
+        db.commit()
+        db.refresh(claim)
+        return ClaimResponse.model_validate(claim)
+
+    @staticmethod
+    def scrub_claim(db: Session, claim_id: UUID, auth_ctx: AuthContext) -> ClaimResponse:
+        ClaimService._verify_permission(auth_ctx, Permission.CLAIM_UPDATE)
+        claim = ClaimService._get_tenant_claim(db, claim_id, auth_ctx)
+        if claim.status not in (ClaimStatus.DRAFT, ClaimStatus.SCRUBBED):
+            raise HTTPException(
+                status_code=400, detail=f"Cannot scrub claim in status '{claim.status}'"
+            )
+        claim.status = ClaimStatus.SCRUBBED
+        db.commit()
+        db.refresh(claim)
+        return ClaimResponse.model_validate(claim)
+
+    @staticmethod
+    def submit_claim(db: Session, claim_id: UUID, auth_ctx: AuthContext) -> ClaimResponse:
+        ClaimService._verify_permission(auth_ctx, Permission.CLAIM_SUBMIT)
+        claim = ClaimService._get_tenant_claim(db, claim_id, auth_ctx)
+        if claim.status != ClaimStatus.SCRUBBED:
+            raise HTTPException(
+                status_code=400, detail="Claim must be in SCRUBBED status prior to submission"
+            )
+        claim.status = ClaimStatus.SUBMITTED
+        db.commit()
+        db.refresh(claim)
+        return ClaimResponse.model_validate(claim)
+
+    @staticmethod
+    def delete_claim(db: Session, claim_id: UUID, auth_ctx: AuthContext) -> None:
+        ClaimService._verify_permission(auth_ctx, Permission.CLAIM_DELETE)
+        claim = ClaimService._get_tenant_claim(db, claim_id, auth_ctx)
+        if claim.status == ClaimStatus.SUBMITTED:
+            raise HTTPException(status_code=400, detail="Cannot delete a submitted claim")
+        db.delete(claim)
+        db.commit()
+
+    @staticmethod
+    def replace_claim_lines(
+        db: Session, claim_id: UUID, lines: list[ClaimLineCreate], auth_ctx: AuthContext
+    ) -> list[ClaimLineResponse]:
+        ClaimService._verify_permission(auth_ctx, Permission.CLAIM_UPDATE)
+        claim = ClaimService._get_tenant_claim(db, claim_id, auth_ctx)
+        if claim.status == ClaimStatus.SUBMITTED:
+            raise HTTPException(status_code=400, detail="Cannot update a submitted claim")
+        for existing in list(claim.lines):
+            db.delete(existing)
+        created = [
+            ClaimLine(
+                tenant_id=claim.tenant_id,
+                claim_id=claim.id,
+                procedure_code=line.procedure_code,
+                tooth_number=line.tooth_number,
+                surface=line.surface,
+                charge_amount=line.charge_amount,
+            )
+            for line in lines
+        ]
+        db.add_all(created)
+        db.commit()
+        return [ClaimLineResponse.model_validate(line) for line in created]

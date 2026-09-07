@@ -1,0 +1,4 @@
+pack_id: "DEFAULT_COVERAGE"
+version: "1.0.0"
+description: "Default coverage rules"
+rules: []

@@ -1,0 +1,4 @@
+pack_id: "DEFAULT_DOCUMENTATION"
+version: "1.0.0"
+description: "Default documentation rules"
+rules: []

@@ -15,6 +15,7 @@ repos:
     hooks:
       - id: mypy
         name: mypy
-        entry: mypy
+        entry: bash -c "cd backend && source venv/Scripts/activate && mypy"
         language: system
+        pass_filenames: false
         types: [python]

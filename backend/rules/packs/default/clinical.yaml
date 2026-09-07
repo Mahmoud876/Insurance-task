@@ -1,0 +1,24 @@
+pack_id: "DENTAL_CORE_V1"
+version: "1.0.0"
+description: "Core CDT dental claim scrubbing rules"
+
+rules:
+  - id: "R_SAME_TOOTH_01"
+    description: "Flag duplicate procedures performed on the same tooth on the same day"
+    operator: "same_tooth_same_day"
+    args: ["$claim.lines", "D2140", "D2150"]
+    message_key: "ERR_SAME_TOOTH_SAME_DAY"
+    severity: "REJECT"
+    fixtures:
+      - name: "Conflicting fillings on same tooth"
+        context:
+          lines:
+            - { tooth_number: "11", procedure_code: "D2140" }
+            - { tooth_number: "11", procedure_code: "D2150" }
+        expected_result: true
+      - name: "Fillings on different teeth"
+        context:
+          lines:
+            - { tooth_number: "11", procedure_code: "D2140" }
+            - { tooth_number: "12", procedure_code: "D2150" }
+        expected_result: false
