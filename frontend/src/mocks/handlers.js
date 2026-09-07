@@ -10,6 +10,17 @@ const claims = [
   },
 ]
 
+const procedureCodes = [
+  { code: 'D0120', category: 'preventive', short_desc: 'Periodic oral evaluation', requires_tooth: false, requires_surface: false, requires_quadrant: false },
+  { code: 'D1110', category: 'preventive', short_desc: 'Prophylaxis - adult', requires_tooth: false, requires_surface: false, requires_quadrant: false },
+  { code: 'D2140', category: 'restorative', short_desc: 'Amalgam 1 surface', requires_tooth: true, requires_surface: true, requires_quadrant: false },
+  { code: 'D2740', category: 'restorative', short_desc: 'Crown porcelain fused to high noble metal', requires_tooth: true, requires_surface: false, requires_quadrant: false },
+  { code: 'D4355', category: 'perio', short_desc: 'Full mouth debridement', requires_tooth: false, requires_surface: false, requires_quadrant: false },
+  { code: 'D7210', category: 'oral_surgery', short_desc: 'Extraction, erupted tooth or exposed root', requires_tooth: true, requires_surface: false, requires_quadrant: false },
+  { code: 'D0274', category: 'diagnostic', short_desc: 'Bitewings 4 images', requires_tooth: false, requires_surface: false, requires_quadrant: false },
+  { code: 'D2392', category: 'restorative', short_desc: 'Composite 2 surfaces posterior', requires_tooth: true, requires_surface: true, requires_quadrant: false },
+]
+
 export const handlers = [
   http.post('/v1/claims', async ({ request }) => {
     const body = await request.json()
@@ -108,6 +119,25 @@ export const handlers = [
         charge_amount: String(line.charge_amount),
       })),
     )
+  }),
+
+  http.get('/v1/reference/procedure-codes', ({ request }) => {
+    const url = new URL(request.url)
+    const query = (url.searchParams.get('query') ?? '').trim().toLowerCase()
+
+    const matches = procedureCodes.filter((code) => {
+      if (!query) {
+        return true
+      }
+
+      return (
+        code.code.toLowerCase().includes(query) ||
+        code.category.toLowerCase().includes(query) ||
+        code.short_desc.toLowerCase().includes(query)
+      )
+    })
+
+    return HttpResponse.json(matches.slice(0, 8))
   }),
 
   http.get('/health', () => {

@@ -23,6 +23,10 @@ from app.core.errors import (
 from app.core.security.auth import AuthContext, decode_jwt_token
 from app.modules.claims.api.claims import router as claims_router
 from app.modules.scrubber.api.scrub import router as scrub_router
+from app.api.routes.auth import router as auth_router
+from app.modules.reference import router as reference_router
+from app.core.security import AuthContext, decode_jwt_token
+from app.db.models import SessionLocal, apply_tenant_rls, clear_tenant_rls, current_tenant_id
 
 load_dotenv()
 
@@ -41,7 +45,7 @@ app.add_exception_handler(
 
 class TenantIsolationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        if request.url.path == "/health":
+        if request.url.path == "/health" or request.url.path.startswith("/auth"):
             return await call_next(request)
 
         auth_ctx: AuthContext | None = getattr(request.state, "auth_context", None)
@@ -62,7 +66,7 @@ class TenantIsolationMiddleware(BaseHTTPMiddleware):
 
 class AuthenticationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        if request.url.path == "/health":
+        if request.url.path == "/health" or request.url.path.startswith("/auth"):
             return await call_next(request)
 
         auth_header = request.headers.get("Authorization")
@@ -89,14 +93,16 @@ app.add_middleware(AuthenticationMiddleware)
 # hitting auth/tenant logic. Added last = runs first in Starlette.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 app.include_router(claims_router, prefix="/api/v1")
 app.include_router(scrub_router, prefix="/api/v1")
+app.include_router(reference_router, prefix="/api/v1")
 
 
 @app.get("/health")

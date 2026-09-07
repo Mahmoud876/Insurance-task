@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { fetchClaims } from "../api/api";
 import { StatusBadge } from "../components/shared/StatusBadge";
@@ -238,14 +239,23 @@ function Claims() {
 
   return (
     <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold">
-          Claims
-        </h1>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold">
+            Claims
+          </h1>
 
-        <p className="mt-1 text-gray-500">
-          Review claims, readiness, and validation findings.
-        </p>
+          <p className="mt-1 text-gray-500">
+            Review claims, readiness, and validation findings.
+          </p>
+        </div>
+
+        <Link
+          to="/claims/new"
+          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+        >
+          New claim
+        </Link>
       </div>
 
       <form
