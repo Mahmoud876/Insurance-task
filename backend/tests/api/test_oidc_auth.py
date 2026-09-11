@@ -1,20 +1,20 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.api.routes.auth import router
+from app.api import auth
 from app.config import settings
 
 
 def create_auth_client() -> TestClient:
     app = FastAPI()
-    app.include_router(router)
+    app.include_router(auth.router)
     return TestClient(app)
 
 
 def test_callback_sets_strict_http_only_refresh_cookie(monkeypatch) -> None:
     client = create_auth_client()
     monkeypatch.setattr(
-        "app.api.routes.auth.exchange_authorization_code",
+        "app.api.auth.exchange_authorization_code",
         lambda code, code_verifier: {
             "access_token": "access-token",
             "refresh_token": "refresh-token",
@@ -39,7 +39,7 @@ def test_callback_sets_strict_http_only_refresh_cookie(monkeypatch) -> None:
 def test_refresh_uses_cookie_and_rotates_refresh_token(monkeypatch) -> None:
     client = create_auth_client()
     monkeypatch.setattr(
-        "app.api.routes.auth.exchange_refresh_token",
+        "app.api.auth.exchange_refresh_token",
         lambda refresh_token: {
             "access_token": "new-access-token",
             "refresh_token": "new-refresh-token",

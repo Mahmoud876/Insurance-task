@@ -9,19 +9,6 @@ from alembic import context
 
 sys.path.insert(0, os.path.realpath("."))
 
-import app.core.audit  # noqa: F401
-import app.core.tenant  # noqa: F401
-import app.core.user  # noqa: F401
-import app.modules.analytics.analytics  # noqa: F401
-import app.modules.claims.models.claim  # noqa: F401
-import app.modules.claims.models.claim_attachment  # noqa: F401
-import app.modules.claims.models.claim_line  # noqa: F401
-import app.modules.claims.models.insurance_policy  # noqa: F401
-import app.modules.claims.models.patient  # noqa: F401
-import app.modules.claims.models.patient_procedure_history  # noqa: F401
-import app.modules.claims.models.provider  # noqa: F401
-import app.modules.payers.payer  # noqa: F401
-import app.modules.payers.payer_plan  # noqa: F401
 from app.core.database import Base
 
 # this is the Alembic Config object, which provides

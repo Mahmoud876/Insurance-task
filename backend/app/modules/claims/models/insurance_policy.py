@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Date, ForeignKey, String
@@ -32,6 +32,8 @@ class InsurancePolicy(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
     effective_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     termination_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
+    source: Mapped[str | None] = mapped_column(String(50), nullable=True, default="manual")
+    verified_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
     tenant: Mapped[Tenant] = relationship("Tenant")
     patient: Mapped[Patient] = relationship("Patient", back_populates="policies")

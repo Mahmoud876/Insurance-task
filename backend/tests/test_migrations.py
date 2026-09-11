@@ -34,7 +34,7 @@ def test_migration_upgrade_downgrade_cycle(alembic_cfg):
     assert "insurance_policy" in inspector.get_table_names()
     assert "procedure_code" in inspector.get_table_names()
 
-    command.downgrade(alembic_cfg, "-1")
+    command.downgrade(alembic_cfg, "d4e8f2a1b7c9")
 
     inspector = inspect(engine)
     assert "procedure_code" not in inspector.get_table_names()
