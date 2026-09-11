@@ -7,6 +7,7 @@ import Dashboard from "@/pages/Dashboard";
 import Claims from "@/pages/Claims";
 import ClaimEditor from "@/pages/claims/ClaimEditor";
 import Patients from "@/pages/Patients";
+import RulesAdmin from "@/pages/RulesAdmin";
 
 function AppRoutes() {
   return (
@@ -22,6 +23,7 @@ function AppRoutes() {
           <Route path="/claims/new" element={<ClaimEditor />} />
           <Route path="/claims/:claimId" element={<ClaimEditor />} />
           <Route path="/patients" element={<Patients />} />
+          <Route path="/rules" element={<RulesAdmin />} />
         </Route>
       </Route>
     </Routes>
@@ -29,4 +31,3 @@ function AppRoutes() {
 }
 
 export default AppRoutes;
-

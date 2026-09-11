@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import ProcedureCodeInput from './ProcedureCodeInput';
 import { claimSchema, createEmptyLine, defaultClaimValues } from './claimSchema';
+import FindingsWorkbench, { makeFindings } from './FindingsWorkbench';
 
 const gridColumns = [
   { key: 'procedure_code', label: 'Procedure', className: 'min-w-[180px]' },
@@ -71,10 +72,15 @@ function ClaimEditor() {
   const [saveError, setSaveError] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const [lastSavedValues, setLastSavedValues] = useState(() => cloneClaim(defaultClaimValues));
+  const [dispositions, setDispositions] = useState({});
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const cellRefs = useRef({});
 
   const watchedLines = form.watch('lines') ?? defaultClaimValues.lines;
+  const watchedValues = form.watch();
   const currentTotal = useMemo(() => getLineTotal(watchedLines), [watchedLines]);
+  const blockingFindings = makeFindings(watchedValues).filter((finding) => finding.severity === 'ERROR' && !dispositions[finding.code]).length;
 
   useEffect(() => {
     const nextTotal = toMoney(currentTotal);
@@ -269,6 +275,40 @@ function ClaimEditor() {
     }
   }
 
+  function goToField(path) {
+    const target = document.querySelector(`[data-path="${path}"]`);
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target?.focus?.();
+    target?.classList.add('ring-2', 'ring-amber-400');
+    window.setTimeout(() => target?.classList.remove('ring-2', 'ring-amber-400'), 1800);
+  }
+
+  function applyFix(fix) {
+    Object.entries(fix).forEach(([path, value]) => form.setValue(path, value, { shouldDirty: true, shouldTouch: true, shouldValidate: true }));
+  }
+
+  async function recordDisposition(finding, disposition, reason) {
+    const entry = { disposition, reason, actor: 'current-user', at: new Date().toISOString() };
+    setDispositions((previous) => ({ ...previous, [finding.code]: entry }));
+    if (!claimId) return;
+    try {
+      await fetch(`/v1/claims/${claimId}/findings/${finding.code}/disposition`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
+    } catch { /* Retain the local audit entry until the API is available. */ }
+  }
+
+  async function submitClaim() {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/v1/claims/${claimId}/submit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispositions }) });
+      if (!response.ok) throw new Error('Unable to submit claim.');
+      setStatusMessage('Claim submitted and moved to Submitted.');
+      setShowSubmitConfirm(false);
+      navigate('/claims');
+    } catch (error) {
+      setSaveError(parseErrorMessage(error));
+    } finally { setIsSubmitting(false); }
+  }
+
   function handleGridAddRow() {
     append(createEmptyLine());
     requestAnimationFrame(() => {
@@ -304,6 +344,7 @@ function ClaimEditor() {
           >
             {isSaving ? 'Saving…' : 'Save changes'}
           </button>
+          <button type="button" title={blockingFindings ? 'Resolve or override all ERROR findings before submitting.' : 'Submit this clean claim.'} onClick={() => setShowSubmitConfirm(true)} disabled={!claimId || isSaving || isLoading || blockingFindings > 0} className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300">Submit</button>
         </div>
       </div>
 
@@ -335,6 +376,7 @@ function ClaimEditor() {
                 <label htmlFor="patient_id" className="mb-1 block text-sm font-medium text-slate-700">Patient</label>
                 <input
                   id="patient_id"
+                  data-path="patient_id"
                   {...form.register('patient_id')}
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
                   placeholder="Patient ID"
@@ -348,6 +390,7 @@ function ClaimEditor() {
                 <label htmlFor="provider_id" className="mb-1 block text-sm font-medium text-slate-700">Provider</label>
                 <input
                   id="provider_id"
+                  data-path="provider_id"
                   {...form.register('provider_id')}
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
                   placeholder="Provider ID"
@@ -358,6 +401,7 @@ function ClaimEditor() {
                 <label htmlFor="payer_id" className="mb-1 block text-sm font-medium text-slate-700">Payer</label>
                 <input
                   id="payer_id"
+                  data-path="payer_id"
                   {...form.register('payer_id')}
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
                   placeholder="Optional payer"
@@ -390,10 +434,23 @@ function ClaimEditor() {
                 <label htmlFor="total_amount" className="mb-1 block text-sm font-medium text-slate-700">Total amount</label>
                 <input
                   id="total_amount"
+                  data-path="total_amount"
                   {...form.register('total_amount')}
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
                   placeholder="0.00"
                 />
+              </div>
+              <div>
+                <label htmlFor="authorization_number" className="mb-1 block text-sm font-medium text-slate-700">Authorisation number</label>
+                <input id="authorization_number" data-path="authorization_number" {...form.register('authorization_number')} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Required for some procedures" />
+              </div>
+              <div>
+                <label htmlFor="narrative" className="mb-1 block text-sm font-medium text-slate-700">Clinical narrative</label>
+                <textarea id="narrative" data-path="narrative" {...form.register('narrative')} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" rows="3" placeholder="Clinical necessity" />
+              </div>
+              <div>
+                <label htmlFor="attachments" className="mb-1 block text-sm font-medium text-slate-700">Attachments</label>
+                <input id="attachments" data-path="attachments" type="file" multiple accept="application/pdf,image/jpeg,image/png" onChange={(event) => form.setValue('attachments', Array.from(event.target.files || []).map((file) => ({ name: file.name, type: file.type, size: file.size })), { shouldDirty: true })} className="w-full text-xs" />
               </div>
             </div>
           </aside>
@@ -462,6 +519,7 @@ function ClaimEditor() {
                         return (
                           <td key={`${field.id}-${column.key}`} className="border-b border-slate-200 px-2 py-2">
                             <input
+                              data-path={`lines.${rowIndex}.${column.key}`}
                               ref={(node) => {
                                 if (node) {
                                   cellRefs.current[`${rowIndex}-${columnIndex}`] = node;
@@ -493,26 +551,10 @@ function ClaimEditor() {
             </div>
           </main>
 
-          <aside className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Validation</h2>
-
-            <div className="mt-4 space-y-3">
-              <div className="rounded-md bg-slate-100 p-3">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Readiness</div>
-                <div className="mt-2 text-2xl font-semibold text-slate-900">{claimId ? '82%' : 'New'}</div>
-              </div>
-
-              <div className="rounded-md border border-slate-200 bg-white p-3">
-                <ul className="space-y-2 text-sm text-slate-600">
-                  <li>• Missing payer mapping</li>
-                  <li>• Procedure code still needs review</li>
-                  <li>• Totals align with line entries</li>
-                </ul>
-              </div>
-            </div>
-          </aside>
+          <FindingsWorkbench values={watchedValues} onGoTo={goToField} onFix={applyFix} dispositions={dispositions} onDisposition={recordDisposition} />
         </div>
       )}
+      {showSubmitConfirm ? <div role="dialog" aria-label="Submit claim confirmation" className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4"><div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"><h2 className="text-lg font-bold">Submit this claim?</h2><p className="mt-2 text-sm text-slate-600">This will transition the claim from Draft to Submitted.</p><div className="mt-5 flex justify-end gap-3"><button type="button" onClick={() => setShowSubmitConfirm(false)} className="text-sm underline">Cancel</button><button type="button" onClick={submitClaim} disabled={isSubmitting} className="rounded bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">{isSubmitting ? 'Submitting…' : 'Confirm submit'}</button></div></div></div> : null}
     </div>
   );
 }

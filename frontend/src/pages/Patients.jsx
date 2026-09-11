@@ -170,11 +170,11 @@ function Patients() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-7">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Patients</h1>
-          <p className="mt-1 text-gray-500">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Patients</h1>
+          <p className="mt-2 text-sm text-slate-500">
             Patient overview based on recent claim activity.
           </p>
         </div>
@@ -195,13 +195,13 @@ function Patients() {
         </article>
       </section>
 
-      <section className="rounded-lg border bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <label className="mb-2 block text-sm font-medium">Search patient ID</label>
         <input
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="Type patient ID..."
-          className="w-full rounded-md border px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-50"
         />
       </section>
 
@@ -212,7 +212,7 @@ function Patients() {
         </div>
       )}
 
-      <section className="overflow-hidden rounded-lg border bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="border-b bg-gray-50">
@@ -260,4 +260,3 @@ function Patients() {
 }
 
 export default Patients;
-

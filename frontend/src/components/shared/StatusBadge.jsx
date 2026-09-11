@@ -28,14 +28,13 @@ const statusConfig = {
 };
 
 function StatusBadge({ status }) {
+  status = typeof status === "object" ? status?.value : status;
   const config = statusConfig[status];
-   if (!config) {
-    throw new Error(`Unknown claim status: ${status}`);
-  }
+  const safeConfig = config || { label: status || "Unknown", variant: "outline" };
 
   return (
     <Badge variant={config.variant}>
-      {config.label}
+      {safeConfig.label}
     </Badge>
   );
 }

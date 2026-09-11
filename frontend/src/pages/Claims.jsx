@@ -110,6 +110,18 @@ function Claims() {
   const [payerId, setPayerId] = useState("");
   const [serviceDateFrom, setServiceDateFrom] = useState("");
   const [serviceDateTo, setServiceDateTo] = useState("");
+  const [selectedClaimIds, setSelectedClaimIds] = useState([]);
+  const [isScrubbing, setIsScrubbing] = useState(false);
+
+  async function bulkScrub() {
+    if (!selectedClaimIds.length) return;
+    setIsScrubbing(true);
+    try {
+      await Promise.all(selectedClaimIds.map((id) => fetch(`/v1/claims/${id}/scrub`, { method: "POST" })));
+      setSelectedClaimIds([]);
+      await loadClaims();
+    } finally { setIsScrubbing(false); }
+  }
 
   const loadClaims = useCallback(
     async ({ cursor = null, append = false } = {}) => {
@@ -238,14 +250,14 @@ function Claims() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-7">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
             Claims
           </h1>
 
-          <p className="mt-1 text-gray-500">
+          <p className="mt-2 text-sm text-slate-500">
             Review claims, readiness, and validation findings.
           </p>
         </div>
@@ -256,11 +268,12 @@ function Claims() {
         >
           New claim
         </Link>
+        <button type="button" disabled={!selectedClaimIds.length || isScrubbing} onClick={bulkScrub} title="Re-run validation on selected claims" className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium disabled:opacity-40">{isScrubbing ? "Scrubbing…" : `Bulk scrub${selectedClaimIds.length ? ` (${selectedClaimIds.length})` : ""}`}</button>
       </div>
 
       <form
         onSubmit={applyFilters}
-        className="rounded-lg border bg-white p-4 shadow-sm"
+        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
       >
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <div>
@@ -274,7 +287,7 @@ function Claims() {
                 setPatientSearch(event.target.value)
               }
               placeholder="Search patient..."
-              className="w-full rounded-md border px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-50"
             />
           </div>
 
@@ -288,7 +301,7 @@ function Claims() {
               onChange={(event) =>
                 setStatus(event.target.value)
               }
-              className="w-full rounded-md border px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-50"
             >
               {STATUS_OPTIONS.map((option) => (
                 <option
@@ -312,7 +325,7 @@ function Claims() {
                 setPayerId(event.target.value)
               }
               placeholder="Payer UUID..."
-              className="w-full rounded-md border px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-50"
             />
           </div>
 
@@ -327,7 +340,7 @@ function Claims() {
               onChange={(event) =>
                 setServiceDateFrom(event.target.value)
               }
-              className="w-full rounded-md border px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-50"
             />
           </div>
 
@@ -342,7 +355,7 @@ function Claims() {
               onChange={(event) =>
                 setServiceDateTo(event.target.value)
               }
-              className="w-full rounded-md border px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-50"
             />
           </div>
         </div>
@@ -385,11 +398,12 @@ function Claims() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1100px] text-left text-sm">
             <thead className="border-b bg-gray-50">
               <tr>
+                <th className="px-4 py-3"><input aria-label="Select all claims" type="checkbox" checked={claims.length > 0 && selectedClaimIds.length === claims.length} onChange={(event) => setSelectedClaimIds(event.target.checked ? claims.map((claim) => claim.id) : [])} /></th>
                 <th className="px-4 py-3 font-semibold">
                   Claim number
                 </th>
@@ -463,6 +477,7 @@ function Claims() {
                       key={claim.id}
                       className="hover:bg-gray-50"
                     >
+                      <td className="px-4 py-4"><input aria-label={`Select claim ${claim.id}`} type="checkbox" checked={selectedClaimIds.includes(claim.id)} onChange={(event) => setSelectedClaimIds((previous) => event.target.checked ? [...previous, claim.id] : previous.filter((id) => id !== claim.id))} /></td>
                       <td className="whitespace-nowrap px-4 py-4 font-medium">
                         {claim.claimNumber ??
                           claim.claim_number ??
@@ -528,7 +543,7 @@ function Claims() {
                 claims.length === 0 && (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="px-6 py-16 text-center"
                     >
                       <div className="text-lg font-semibold">
