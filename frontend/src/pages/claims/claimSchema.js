@@ -26,6 +26,9 @@ export const claimSchema = z.object({
   service_date_from: z.string().min(1, 'Service date is required'),
   service_date_to: z.string().min(1, 'Service date is required'),
   total_amount: moneyString.default(''),
+  narrative: z.string().optional().or(z.literal('')),
+  authorization_number: z.string().optional().or(z.literal('')),
+  attachments: z.array(z.any()).default([]),
   lines: z.array(claimLineSchema).min(1, 'At least one line item is required'),
 });
 
@@ -36,6 +39,9 @@ export const defaultClaimValues = {
   service_date_from: '',
   service_date_to: '',
   total_amount: '0.00',
+  narrative: '',
+  authorization_number: '',
+  attachments: [],
   lines: [
    {
      procedure_code: '',
@@ -52,4 +58,3 @@ export const createEmptyLine = () => ({
   surface: '',
   charge_amount: '',
 });
-

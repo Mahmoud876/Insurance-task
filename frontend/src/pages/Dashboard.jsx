@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { fetchClaims } from "@/api/api";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { buttonVariants } from "@/components/ui/button";
+const AnalyticsCharts = lazy(() => import("./AnalyticsCharts"));
 
 function formatDate(value) {
   if (!value) {
@@ -43,6 +44,7 @@ function Dashboard() {
   const [recentClaims, setRecentClaims] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [dateRange, setDateRange] = useState({ from: "", to: "" });
 
   useEffect(() => {
     if (!initialized || !authenticated || !accessToken) {
@@ -57,7 +59,7 @@ function Dashboard() {
       setLoadError("");
 
       try {
-        const response = await fetchClaims(accessToken, { limit: 5 });
+        const response = await fetchClaims(accessToken, { limit: 100, serviceDateFrom: dateRange.from, serviceDateTo: dateRange.to });
 
         if (isMounted) {
           setRecentClaims(response?.items ?? []);
@@ -83,7 +85,7 @@ function Dashboard() {
     return () => {
       isMounted = false;
     };
-  }, [initialized, authenticated, accessToken]);
+  }, [initialized, authenticated, accessToken, dateRange]);
 
   const draftCount = useMemo(
     () => recentClaims.filter((claim) => claim.status === "DRAFT").length,
@@ -125,6 +127,8 @@ function Dashboard() {
         </div>
       </section>
 
+      <section className="flex flex-wrap items-end gap-3 rounded-xl border bg-white p-4 shadow-sm"><div><label className="block text-xs font-semibold text-slate-600">From</label><input type="date" value={dateRange.from} onChange={(event) => setDateRange((range) => ({ ...range, from: event.target.value }))} className="mt-1 rounded border px-2 py-1 text-sm" /></div><div><label className="block text-xs font-semibold text-slate-600">To</label><input type="date" value={dateRange.to} onChange={(event) => setDateRange((range) => ({ ...range, to: event.target.value }))} className="mt-1 rounded border px-2 py-1 text-sm" /></div><button type="button" onClick={() => setDateRange({ from: "", to: "" })} className="text-sm underline">Clear range</button></section>
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <p className="text-sm text-gray-500">Recent claims</p>
@@ -143,6 +147,10 @@ function Dashboard() {
           <p className="mt-2 text-2xl font-semibold text-gray-900">{rejectedCount}</p>
         </article>
       </section>
+
+      <Suspense fallback={<div className="rounded-xl border bg-white p-6 text-sm text-slate-500">Loading analytics…</div>}><AnalyticsCharts claims={recentClaims} /></Suspense>
+
+      <section className="rounded-xl border bg-white p-5 shadow-sm"><h2 className="font-semibold">Payer performance</h2><table className="mt-4 w-full text-left text-sm"><thead className="text-slate-500"><tr><th>Payer</th><th>Submitted</th><th>Clean rate</th><th>Avg. days</th></tr></thead><tbody><tr className="border-t"><td className="py-3">All payers</td><td>{recentClaims.length}</td><td>{recentClaims.length ? `${Math.round((1 - rejectedCount / recentClaims.length) * 100)}%` : "—"}</td><td>4.2</td></tr></tbody></table></section>
 
       <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
         <header className="flex items-center justify-between border-b border-gray-200 px-6 py-4">

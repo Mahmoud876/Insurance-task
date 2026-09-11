@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AuthContext } from "./AuthContext";
 
-const AUTH_API_BASE_URL = import.meta.env.VITE_AUTH_API_BASE_URL ?? "http://localhost:8000";
+const AUTH_API_BASE_URL = (import.meta.env.VITE_AUTH_API_BASE_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
 function AuthProvider({ children }) {
   const [authenticated, setAuthenticated] = useState(false);
@@ -80,7 +80,9 @@ function AuthProvider({ children }) {
   }, [clearRefreshTimer, refreshAccessToken]);
 
   function login() {
-    window.location.assign(`${AUTH_API_BASE_URL}/auth/login`);
+    // A full navigation is intentional: the API sets PKCE cookies before redirecting
+    // to the identity provider and returns to the frontend callback flow.
+    window.location.href = `${AUTH_API_BASE_URL}/auth/login`;
   }
 
   async function logout() {
