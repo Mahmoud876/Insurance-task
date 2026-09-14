@@ -27,6 +27,10 @@ class Settings(BaseSettings):
 
     MAX_UPLOAD_SIZE_BYTES: int = 10 * 1024 * 1024
 
+    OCR_ENABLED: bool = True
+    OCR_GPU: bool = False
+    OCR_LANGUAGES: str = "en"
+
     S3_ENDPOINT_URL: str = "http://localhost:9000"
     S3_REGION: str = "us-east-1"
     S3_ACCESS_KEY: str = "minioadmin"

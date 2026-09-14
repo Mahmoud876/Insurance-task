@@ -11,6 +11,11 @@ const statusConfig = {
     variant: "outline",
   },
 
+  SCRUBBED: {
+    label: "Scrubbed",
+    variant: "outline",
+  },
+
   ACCEPTED: {
     label: "Accepted",
     variant: "default",
@@ -33,7 +38,7 @@ function StatusBadge({ status }) {
   const safeConfig = config || { label: status || "Unknown", variant: "outline" };
 
   return (
-    <Badge variant={config.variant}>
+    <Badge variant={safeConfig.variant}>
       {safeConfig.label}
     </Badge>
   );

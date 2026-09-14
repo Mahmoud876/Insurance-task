@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { fetchClaims } from "../api/api";
+import { fetchClaims, createClaimsApi } from "../api/api";
 import { StatusBadge } from "../components/shared/StatusBadge";
 import { ScorePill } from "../components/shared/ScorePill";
 import { EmptyState, LoadingState, ErrorState } from "../components/shared";
@@ -106,8 +106,9 @@ function Claims() {
   async function bulkScrub() {
     if (!selectedClaimIds.length) return;
     setIsScrubbing(true);
+    const api = createClaimsApi(accessToken);
     try {
-      await Promise.all(selectedClaimIds.map((id) => fetch(`/v1/claims/${id}/scrub`, { method: "POST" })));
+      await Promise.all(selectedClaimIds.map((id) => api.scrubClaimApiV1ClaimsClaimIdScrubPost(id)));
       setSelectedClaimIds([]);
       await loadClaims();
       // Add status message for aria-live
