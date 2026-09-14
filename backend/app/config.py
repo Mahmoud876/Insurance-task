@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Dental Claims Engine"
     ENVIRONMENT: Literal["development", "staging", "production", "test"] = "development"
 
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/claims_db"
+    DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5433/postgres"
 
     JWT_SECRET_KEY: str = "insecure_dev_secret_key_change_in_production"
     JWT_ALGORITHM: str = "HS256"
@@ -17,6 +17,25 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     APP_BASE_URL: str = "http://localhost:8000"
     FRONTEND_BASE_URL: str = "http://localhost:5173"
+
+    DB_POOL_SIZE: int = 5
+    DB_MAX_OVERFLOW: int = 10
+
+    REDIS_URL: str = "redis://localhost:6379/0"
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_DEFAULT_PER_MINUTE: int = 300
+    RATE_LIMIT_STRICT_PER_MINUTE: int = 60
+
+    MAX_UPLOAD_SIZE_BYTES: int = 10 * 1024 * 1024
+
+    S3_ENDPOINT_URL: str = "http://localhost:9000"
+    S3_REGION: str = "us-east-1"
+    S3_ACCESS_KEY: str = "minioadmin"
+    S3_SECRET_KEY: str = "minioadmin"
+    S3_BUCKET: str = "claim-attachments"
+    S3_PRESIGN_EXPIRY_SECONDS: int = 300
+
+    FIELD_ENCRYPTION_KEY: str = "pMrlK2Vj_wmEcMnFP2mso6L-nJYB6VX6biGeBmBP9AA="
 
     OIDC_ISSUER_URL: str = "http://localhost:8080/realms/insurance"
     OIDC_CLIENT_ID: str = "insurance-frontend"
@@ -55,6 +74,18 @@ class Settings(BaseSettings):
 
             if not self.AUTH_COOKIE_SECURE:
                 raise ValueError("AUTH_COOKIE_SECURE must be true in staging/production")
+
+            if self.FIELD_ENCRYPTION_KEY == "pMrlK2Vj_wmEcMnFP2mso6L-nJYB6VX6biGeBmBP9AA=":
+                raise ValueError(
+                    "FIELD_ENCRYPTION_KEY must be rotated away from the development default "
+                    "in staging/production."
+                )
+
+            if self.S3_ACCESS_KEY == "minioadmin":
+                raise ValueError(
+                    "S3_ACCESS_KEY must not use the development default MinIO credential "
+                    "in staging/production."
+                )
 
         return self
 

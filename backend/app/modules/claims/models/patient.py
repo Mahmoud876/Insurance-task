@@ -8,12 +8,12 @@ from sqlalchemy import Date, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base, TimestampMixin, UUIDPrimaryKeyMixin
-from app.modules.claims.models.claim import Claim
-from app.modules.claims.models.patient_procedure_history import PatientProcedureHistory
 
 if TYPE_CHECKING:
     from app.core.tenant import Tenant
+    from app.modules.claims.models.claim import Claim
     from app.modules.claims.models.insurance_policy import InsurancePolicy
+    from app.modules.claims.models.patient_procedure_history import PatientProcedureHistory
 
 
 class Patient(Base, UUIDPrimaryKeyMixin, TimestampMixin):
@@ -30,9 +30,7 @@ class Patient(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     policies: Mapped[list[InsurancePolicy]] = relationship(
         "InsurancePolicy", back_populates="patient"
     )
-
     claims: Mapped[list[Claim]] = relationship("Claim", back_populates="patient")
-
     procedure_history: Mapped[list[PatientProcedureHistory]] = relationship(
         "PatientProcedureHistory", back_populates="patient", cascade="all, delete-orphan"
     )

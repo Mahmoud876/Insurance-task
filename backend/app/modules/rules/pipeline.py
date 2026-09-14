@@ -1,6 +1,16 @@
 import logging
+import time
 from datetime import UTC, date, datetime
 
+from app.core.normalization.tooth import parse_fdi
+from app.core.telemetry import (
+    DCS_RULE_ERRORS_TOTAL,
+    DCS_RULE_HITS_TOTAL,
+    DCS_SCRUB_DURATION_SECONDS,
+    DCS_SCRUB_FINDINGS_TOTAL,
+    tracer,
+)
+from app.modules.rules.operators.generic import age_at_service
 from app.modules.rules.pipeline_types import (
     ClaimSnapshot,
     EnrichedClaimContext,
@@ -16,17 +26,48 @@ from app.modules.rules.resolver import ResolvedRuleSet, RuleConfig
 logger = logging.getLogger(__name__)
 
 
+_CATEGORY_PREFIX: dict[str, str] = {
+    "P1_": "structural",
+    "P2_": "format",
+    "P3_": "clinical",
+    "P4_": "coverage",
+    "P5_": "documentation",
+    "DCS-ENGINE": "engine_error",
+}
+
+
+def _category_for_rule(rule_id: str) -> str:
+    key = rule_id.upper()
+    for prefix, category in _CATEGORY_PREFIX.items():
+        if key.startswith(prefix):
+            return category
+    return "other"
+
+
+def _emit_findings_metrics(findings: list[Finding]) -> None:
+    for f in findings:
+        DCS_SCRUB_FINDINGS_TOTAL.labels(
+            severity=f.severity.value,
+            category=_category_for_rule(f.rule_id),
+        ).inc()
+
+
 def normalize_snapshot(snapshot: ClaimSnapshot) -> ClaimSnapshot:
     """Normalizes tooth formatting, surface capitalization, and line order."""
     normalized_lines = []
     for line in sorted(snapshot.lines, key=lambda item: item.line_number):
+        tooth_clean = line.tooth_number.strip().upper() if line.tooth_number else None
+
+        if tooth_clean and tooth_clean.isdigit():
+            ret = parse_fdi(int(tooth_clean))
+            if ret.success and ret.canonical_fdi:
+                tooth_clean = str(ret.canonical_fdi)
+
         normalized_lines.append(
             line.model_copy(
                 update={
                     "procedure_code": line.procedure_code.strip().upper(),
-                    "tooth_number": line.tooth_number.strip().upper()
-                    if line.tooth_number
-                    else None,
+                    "tooth_number": tooth_clean,
                     "surface": "".join(sorted(line.surface.strip().upper()))
                     if line.surface
                     else None,
@@ -39,13 +80,28 @@ def normalize_snapshot(snapshot: ClaimSnapshot) -> ClaimSnapshot:
 def enrich_context(snapshot: ClaimSnapshot, reference: ReferenceData) -> EnrichedClaimContext:
     """Computes age, 24-month procedure history vectors, and indexes lines."""
     # Age calculation
-    svc_date = snapshot.service_date_from
-    dob = snapshot.patient_dob
-    age_years = svc_date.year - dob.year - ((svc_date.month, svc_date.day) < (dob.month, dob.day))
-    age_months = (svc_date.year - dob.year) * 12 + (svc_date.month - dob.month)
+    age_years = age_at_service(snapshot.patient_dob, snapshot.service_date_from)
+
+    total_months = (snapshot.service_date_from.year - snapshot.patient_dob.year) * 12 + (
+        snapshot.service_date_from.month - snapshot.patient_dob.month
+    )
+    if snapshot.service_date_from.day < snapshot.patient_dob.day:
+        total_months -= 1
+
+    age_months = max(0, total_months)
 
     # 24 month history filter cutoff
-    cutoff_date = date(svc_date.year - 2, svc_date.month, svc_date.day)
+    try:
+        cutoff_date = date(
+            snapshot.service_date_from.year - 2,
+            snapshot.service_date_from.month,
+            snapshot.service_date_from.day,
+        )
+    except ValueError:
+        # Leap year: use Feb 28 for non leap years
+        cutoff_date = date(
+            snapshot.service_date_from.year - 2, snapshot.service_date_from.month, 28
+        )
 
     enriched_lines: list[EnrichedLineContext] = []
     lines_by_tooth: dict[str, list[EnrichedLineContext]] = {}
@@ -57,7 +113,7 @@ def enrich_context(snapshot: ClaimSnapshot, reference: ReferenceData) -> Enriche
             for item in reference.patient_history
             if item.procedure_code == line.procedure_code
             and (line.tooth_number is None or item.tooth_number == line.tooth_number)
-            and cutoff_date <= item.service_date < svc_date
+            and cutoff_date <= item.service_date < snapshot.service_date_from
         )
 
         eline = EnrichedLineContext(
@@ -87,29 +143,37 @@ def enrich_context(snapshot: ClaimSnapshot, reference: ReferenceData) -> Enriche
 
 
 def evaluate_rule_safe(rule: RuleConfig, context: EnrichedClaimContext) -> list[Finding]:
-    """Fault-isolated operator invoker. Converts runtime errors to DCS-ENGINE-0001."""
     findings: list[Finding] = []
     if not rule.operator:
         return findings
 
     try:
         handler = OperatorRegistry.get(rule.operator)
-        # Pass context and rule args to operator
         is_violated = handler.fn(context, *rule.args)
 
         if is_violated:
-            severity_enum = FindingSeverity(rule.severity or "REJECT")
+            severity_str = rule.severity or "REJECT"
+
+            # Primary feedback loop metric
+            DCS_RULE_HITS_TOTAL.labels(
+                rule_code=rule.rule_id,
+                severity=severity_str,
+            ).inc()
+
             findings.append(
                 Finding(
                     rule_id=rule.rule_id,
-                    severity=severity_enum,
+                    severity=FindingSeverity(severity_str),
                     message_key=rule.message_key or "ERR_RULE_VIOLATION",
                     message=f"Rule {rule.rule_id} failed check.",
+                    line_number=getattr(rule, "line_number", None),
                 )
             )
+
     except Exception as exc:
+        DCS_RULE_ERRORS_TOTAL.labels(rule_code=rule.rule_id).inc()
+
         logger.warning(f"Rule evaluation exception on {rule.rule_id}: {exc}")
-        # System error caught in fault sandbox -> DCS-ENGINE-0001 INFO finding
         findings.append(
             Finding(
                 rule_id=rule.rule_id,
@@ -203,10 +267,41 @@ def scrub(
     reference: ReferenceData,
 ) -> ScrubResult:
     """Pure scrub pipeline entrypoint: Normalize -> Enrich -> Phased Eval -> Post Process."""
-    normalized = normalize_snapshot(snapshot)
-    context = enrich_context(normalized, reference)
-    raw_findings = evaluate_phased(context, ruleset)
-    findings, score, status, is_truncated = post_process_findings(raw_findings)
+    with tracer.start_as_current_span(
+        "scrub_claim", attributes={"claim.id": str(snapshot.claim_id)}
+    ):
+        # Phase 1: Normalize
+        with tracer.start_as_current_span("phase_normalize"):
+            start_time = time.perf_counter()
+            normalized = normalize_snapshot(snapshot)
+            DCS_SCRUB_DURATION_SECONDS.labels(phase="normalize").observe(
+                time.perf_counter() - start_time
+            )
+
+        # Phase 2: Enrich
+        with tracer.start_as_current_span("phase_enrich"):
+            start_time = time.perf_counter()
+            context = enrich_context(normalized, reference)
+            DCS_SCRUB_DURATION_SECONDS.labels(phase="enrich").observe(
+                time.perf_counter() - start_time
+            )
+
+        # Phase 3: Phased Evaluation
+        with tracer.start_as_current_span("phase_evaluate"):
+            start_time = time.perf_counter()
+            raw_findings = evaluate_phased(context, ruleset)
+            DCS_SCRUB_DURATION_SECONDS.labels(phase="evaluate").observe(
+                time.perf_counter() - start_time
+            )
+
+        # Phase 4: Post-Process
+        with tracer.start_as_current_span("phase_post_process"):
+            start_time = time.perf_counter()
+            findings, score, status, is_truncated = post_process_findings(raw_findings)
+            DCS_SCRUB_DURATION_SECONDS.labels(phase="post_process").observe(
+                time.perf_counter() - start_time
+            )
+        _emit_findings_metrics(findings)
 
     return ScrubResult(
         claim_id=snapshot.claim_id,

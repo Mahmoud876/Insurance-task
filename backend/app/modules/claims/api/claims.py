@@ -12,9 +12,11 @@ from app.modules.claims.schemas.claim import (
     ClaimBoardPage,
     ClaimCreate,
     ClaimLineCreate,
+    ClaimResponse,
     ClaimUpdate,
 )
 from app.modules.claims.service.claim_service import ClaimService
+from app.modules.scrubber.service.scrub_service import execute_and_persist_scrub
 
 router = APIRouter(prefix="/claims", tags=["claims"])
 
@@ -85,13 +87,16 @@ def update_claim(
     return claim
 
 
-@router.post("/{claim_id}/scrub")
+@router.post("/{claim_id}/scrub", response_model=ClaimResponse)
 def scrub_claim(
     claim_id: UUID,
+    response: Response,
     db: Session = Depends(get_db),
     auth_ctx: AuthContext = Depends(get_current_auth_context),
 ) -> Any:
-    return ClaimService.scrub_claim(db, claim_id, auth_ctx)
+    claim = execute_and_persist_scrub(db, claim_id, auth_ctx)
+    _set_etag(response, claim)
+    return claim
 
 
 @router.post("/{claim_id}/submit")

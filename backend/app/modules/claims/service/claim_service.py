@@ -1,4 +1,5 @@
 import base64
+import logging
 from datetime import date, datetime
 from uuid import UUID
 
@@ -8,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security.auth import AuthContext
 from app.core.security.rbac import ROLE_PERMISSIONS, Permission
+from app.core.telemetry import refresh_claim_gauges
 from app.modules.claims.models.claim import Claim, ClaimStatus
 from app.modules.claims.models.claim_line import ClaimLine
 from app.modules.claims.schemas.claim import (
@@ -18,6 +20,8 @@ from app.modules.claims.schemas.claim import (
     ClaimResponse,
     ClaimUpdate,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ClaimService:
@@ -54,6 +58,14 @@ class ClaimService:
         if claim is None:
             raise HTTPException(status_code=404, detail="Claim not found")
         return claim
+
+    @staticmethod
+    def _refresh_gauges(db: Session) -> None:
+        """Re-sync claim metrics after a mutation without failing the business call."""
+        try:
+            refresh_claim_gauges(db)
+        except Exception:
+            logger.exception("Failed to refresh claim gauges")
 
     @staticmethod
     def list_claims(
@@ -131,6 +143,7 @@ class ClaimService:
         db.add(claim)
         db.commit()
         db.refresh(claim)
+        ClaimService._refresh_gauges(db)
         return ClaimResponse.model_validate(claim)
 
     @staticmethod
@@ -151,6 +164,7 @@ class ClaimService:
             setattr(claim, field, value)
         db.commit()
         db.refresh(claim)
+        ClaimService._refresh_gauges(db)
         return ClaimResponse.model_validate(claim)
 
     @staticmethod
@@ -164,6 +178,7 @@ class ClaimService:
         claim.status = ClaimStatus.SCRUBBED
         db.commit()
         db.refresh(claim)
+        ClaimService._refresh_gauges(db)
         return ClaimResponse.model_validate(claim)
 
     @staticmethod
@@ -177,6 +192,7 @@ class ClaimService:
         claim.status = ClaimStatus.SUBMITTED
         db.commit()
         db.refresh(claim)
+        ClaimService._refresh_gauges(db)
         return ClaimResponse.model_validate(claim)
 
     @staticmethod
@@ -187,6 +203,7 @@ class ClaimService:
             raise HTTPException(status_code=400, detail="Cannot delete a submitted claim")
         db.delete(claim)
         db.commit()
+        ClaimService._refresh_gauges(db)
 
     @staticmethod
     def replace_claim_lines(

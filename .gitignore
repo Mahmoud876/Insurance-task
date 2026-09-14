@@ -26,3 +26,7 @@ node_modules/
 .coverage.*
 htmlcov/
 coverage.xml
+.pre-commit-home/
+.hypothesis/
+.import_linter_cache/
+backend/loadtest/.seed-state.json

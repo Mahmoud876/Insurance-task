@@ -1,16 +1,21 @@
+import os
 from uuid import UUID
 
+import sentry_sdk
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from prometheus_client import make_asgi_app
 from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 
-from app.core import user as _user  # noqa: F401
+import app.db.models as _db_models  # noqa: F401  (registers all ORM mappers before first query)
+from app.api.auth import router as auth_router
 from app.core.database_session import (
     SessionLocal,
     apply_tenant_rls,
@@ -21,27 +26,37 @@ from app.core.errors import (
     http_exception_handler,
     validation_exception_handler,
 )
+from app.core.logging_config import setup_structured_logging
+from app.core.rate_limit import RateLimitMiddleware
+from app.core.request_logging import RequestLoggingMiddleware
 from app.core.security.auth import AuthContext, decode_jwt_token
+from app.core.security_headers import SecurityHeadersMiddleware
+from app.core.telemetry import configure_tracing, instrument_fastapi
 from app.modules.analytics.api import router as analytics_router
 from app.modules.autofix.api.autofix import router as autofix_router
+from app.modules.claims.api.attachments import router as attachments_router
 from app.modules.claims.api.claims import router as claims_router
-from app.modules.claims.models import (  # noqa: F401
-    claim_attachment,
-    claim_line,
-    insurance_policy,
-    patient,
-    patient_procedure_history,
-    provider,
-)
 from app.modules.ocr.api.ocr import router as ocr_router
-from app.modules.payers import payer, payer_plan  # noqa: F401
 from app.modules.preauth.api.preauth import router as preauth_router
 from app.modules.scrubber.api.scrub import router as scrub_router
 from app.modules.simulation.api.simulation import router as simulation_router
 
 load_dotenv()
 
+setup_structured_logging()
+
+configure_tracing()
+
+sentry_sdk.init(
+    dsn=os.getenv("SENTRY_DSN", ""),
+    traces_sample_rate=0.2,
+    send_default_pii=False,
+    environment=os.getenv("ENVIRONMENT", "development"),
+)
+
 app = FastAPI(title="Dental Claims Engine")
+
+instrument_fastapi(app)
 
 app.add_exception_handler(
     StarletteHTTPException,
@@ -65,13 +80,14 @@ class TenantIsolationMiddleware(BaseHTTPMiddleware):
 
         db: Session = SessionLocal()
         try:
-            apply_tenant_rls(db, tenant_id)
+            await run_in_threadpool(apply_tenant_rls, db, tenant_id)
             request.state.db = db
+
             response = await call_next(request)
             return response
         finally:
-            clear_tenant_rls(db)
-            db.close()
+            await run_in_threadpool(clear_tenant_rls, db)
+            await run_in_threadpool(db.close)
             current_tenant_id.reset(token_res)
 
 
@@ -98,6 +114,9 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(TenantIsolationMiddleware)
 app.add_middleware(AuthenticationMiddleware)
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware)
 
 # CORS must be the outermost middleware so preflight OPTIONS requests
 # (which have no Authorization header) get proper CORS headers before
@@ -110,7 +129,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+metrics_app = make_asgi_app()
+app.mount("/metrics", metrics_app)
+
+app.include_router(auth_router)
 app.include_router(claims_router, prefix="/api/v1")
+app.include_router(attachments_router, prefix="/api/v1")
 app.include_router(autofix_router, prefix="/api/v1")
 app.include_router(analytics_router, prefix="/api/v1")
 app.include_router(scrub_router, prefix="/api/v1")
