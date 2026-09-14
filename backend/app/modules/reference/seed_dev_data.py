@@ -1,54 +1,62 @@
 import uuid
 from datetime import date
+from decimal import Decimal
 
 from app.core.database_session import SessionLocal
-from app.modules.claims.models.claim import Claim
+from app.core.tenant import Tenant
+from app.modules.claims.models.claim import Claim, ClaimStatus
 from app.modules.claims.models.claim_line import ClaimLine
 from app.modules.claims.models.patient import Patient
+from app.modules.claims.models.provider import Provider
 
 
 def seed_sample_claim() -> None:
     db = SessionLocal()
     try:
-        tenant_id = uuid.uuid4()
-        patient_id = uuid.uuid4()
-        claim_id = uuid.uuid4()
+        tenant = Tenant(name="Seed Tenant", slug=f"seed-{uuid.uuid4().hex[:8]}")
+        db.add(tenant)
+        db.flush()
 
         patient = Patient(
-            id=patient_id,
-            tenant_id=tenant_id,
+            tenant_id=tenant.id,
             first_name="John",
             last_name="Doe",
             dob=date(1990, 5, 14),
-            gender="M",
         )
-        db.add(patient)
+        provider = Provider(
+            tenant_id=tenant.id,
+            npi="1234567890",
+            first_name="Jane",
+            last_name="Smith",
+        )
+        db.add_all([patient, provider])
+        db.flush()
 
         claim = Claim(
-            id=claim_id,
-            tenant_id=tenant_id,
-            patient_id=patient_id,
+            tenant_id=tenant.id,
             claim_number="CLM-2026-001",
-            status="draft",
+            patient_id=patient.id,
+            provider_id=provider.id,
+            status=ClaimStatus.DRAFT,
+            total_amount=Decimal("150.00"),
             service_date_from=date(2026, 8, 1),
             service_date_to=date(2026, 8, 1),
         )
         db.add(claim)
+        db.flush()
 
         line = ClaimLine(
-            id=uuid.uuid4(),
-            claim_id=claim_id,
-            line_number=1,
+            tenant_id=tenant.id,
+            claim_id=claim.id,
             procedure_code="D2140",
             tooth_number="14",
             surface="MO",
-            charge_amount=150.00,
-            quantity=1,
+            charge_amount=Decimal("150.00"),
         )
         db.add(line)
 
         db.commit()
-        print(f"Seeded claim_id: {claim_id}")
+        print(f"Seeded tenant_id: {tenant.id}, claim_id: {claim.id}")
     finally:
         db.close()
 

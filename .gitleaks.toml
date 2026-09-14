@@ -1,0 +1,12 @@
+# gitleaks configuration
+# Extends the default ruleset and documents known, intentional secrets.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Intentional development defaults; never valid for staging or production."
+regexes = [
+    # Fernet development default key for FIELD_ENCRYPTION_KEY. config.py
+    # rejects this value when ENVIRONMENT is staging or production.
+    '''pMrlK2Vj_wmEcMnFP2mso6L-nJYB6VX6biGeBmBP9AA=''',
+]

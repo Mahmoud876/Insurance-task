@@ -13,7 +13,7 @@ endif
 VENV_PYTHON := $(VENV_BIN)/python
 VENV_PIP := $(VENV_BIN)/pip
 
-.PHONY: venv setup install dev build lint lint-fix openapi-check test compose-up compose-down migrate migrate-down seed clean help ci
+.PHONY: venv setup install dev build lint lint-fix openapi-check test compose-up compose-down migrate migrate-down seed load-test-load load-test-seed load-test-token load-test clean help ci
 
 help:
 	@echo "Available commands:"
@@ -28,6 +28,9 @@ help:
 	@echo "  make migrate      Run database migrations (alembic upgrade head)"
 	@echo "  make migrate-down Roll back last database migration (alembic downgrade -1)"
 	@echo "  make seed         Seed database data"
+	@echo "  make load-test-seed    Seed + cache tenant/claim ids for k6"
+	@echo "  make load-test-token   Print a bearer JWT for the seeded tenant"
+	@echo "  make load-test    Run k6 scrub scenario (50 VUs, p95<300ms)"
 	@echo "  make clean        Remove virtualenvs, build artifacts, and test caches"
 
 venv:
@@ -81,6 +84,15 @@ migrate-down:
 
 seed:
 	$(VENV_PYTHON) -m app.modules.reference.seed_dev_data
+
+load-test-seed:
+	$(VENV_PYTHON) -m loadtest
+
+load-test-token:
+	@$(VENV_PYTHON) -m loadtest.make_token
+
+load-test:
+	k6 run loadtest/scrub.js
 
 clean:
 	rm -rf $(VENV_DIR) node_modules ../frontend/node_modules .pytest_cache .mypy_cache .ruff_cache .coverage htmlcov coverage.xml dist build *.egg-info

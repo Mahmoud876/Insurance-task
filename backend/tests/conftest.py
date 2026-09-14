@@ -4,6 +4,9 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID, uuid4
 
+os.environ.setdefault("ENVIRONMENT", "test")
+os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
+
 import jwt
 import pytest
 from alembic.config import Config
@@ -176,7 +179,7 @@ def db_engine(database_url: str):
     with engine.begin() as connection:
         connection.execute(
             text(
-                "TRUNCATE TABLE claim_line, claim_attachment, claim, audit_event, "
+                "TRUNCATE TABLE claim_line, claim_attachment, claim, scrub_runs, audit_event, "
                 "insurance_policy, payer_plan, payer, provider, patient, app_user, tenant "
                 "CASCADE"
             )
@@ -199,6 +202,7 @@ def db_session(db_engine) -> Generator[Session, None, None]:
                     claim_line,
                     claim_attachment,
                     claim,
+                    scrub_runs,
                     audit_event,
                     insurance_policy,
                     payer_plan,

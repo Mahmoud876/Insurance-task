@@ -11,7 +11,7 @@ class ScrubRun(Base):
     __tablename__ = "scrub_runs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    claim_id = Column(UUID(as_uuid=True), ForeignKey("claims.id"), nullable=False, index=True)
+    claim_id = Column(UUID(as_uuid=True), ForeignKey("claim.id"), nullable=False, index=True)
     engine_version = Column(String(50), nullable=False)
     input_hash = Column(String(64), nullable=False)
     readiness_score = Column(Integer, nullable=False)
