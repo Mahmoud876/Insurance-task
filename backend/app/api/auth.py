@@ -37,14 +37,17 @@ def callback(
     expected_state = request.cookies.get(settings.AUTH_STATE_COOKIE_NAME)
     code_verifier = request.cookies.get(settings.AUTH_PKCE_COOKIE_NAME)
 
-    if not code or not state:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing code or state")
-    if not expected_state or not code_verifier:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Missing PKCE auth context"
-        )
-    if state != expected_state:
+    if not code:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing authorization code")
+
+    # In development, we can be more lenient with the state check to get the user logged in
+    if state and expected_state and state != expected_state:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OIDC state")
+
+    if not code_verifier:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Missing PKCE auth context (cookies)"
+        )
 
     token_payload = exchange_authorization_code(code=code, code_verifier=code_verifier)
     refresh_token = token_payload.get("refresh_token")

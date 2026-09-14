@@ -142,6 +142,8 @@ app.include_router(simulation_router, prefix="/api")
 app.include_router(ocr_router, prefix="/api")
 app.include_router(preauth_router, prefix="/api")
 
+app.include_router(auth_router)
+
 
 @app.get("/health")
 def health_check() -> dict[str, str]:

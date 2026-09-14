@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import { fetchClaims } from "../api/api";
 import { StatusBadge } from "../components/shared/StatusBadge";
 import { ScorePill } from "../components/shared/ScorePill";
+import { EmptyState, LoadingState, ErrorState } from "../components/shared";
 
 const STATUS_OPTIONS = [
   { value: "", label: "All statuses" },
@@ -14,17 +15,6 @@ const STATUS_OPTIONS = [
   { value: "PAID", label: "Paid" },
 ];
 
-function SkeletonRow() {
-  return (
-    <tr className="animate-pulse">
-      {Array.from({ length: 8 }).map((_, index) => (
-        <td key={index} className="px-4 py-4">
-          <div className="h-4 rounded bg-gray-200" />
-        </td>
-      ))}
-    </tr>
-  );
-}
 
 function formatDate(value) {
   if (!value) {
@@ -110,6 +100,31 @@ function Claims() {
   const [payerId, setPayerId] = useState("");
   const [serviceDateFrom, setServiceDateFrom] = useState("");
   const [serviceDateTo, setServiceDateTo] = useState("");
+  const [selectedClaimIds, setSelectedClaimIds] = useState([]);
+  const [isScrubbing, setIsScrubbing] = useState(false);
+
+  async function bulkScrub() {
+    if (!selectedClaimIds.length) return;
+    setIsScrubbing(true);
+    try {
+      await Promise.all(selectedClaimIds.map((id) => fetch(`/v1/claims/${id}/scrub`, { method: "POST" })));
+      setSelectedClaimIds([]);
+      await loadClaims();
+      // Add status message for aria-live
+      setScrubStatus(`Successfully scrubbed ${selectedClaimIds.length} claims.`);
+    } finally {
+      setIsScrubbing(false);
+    }
+  }
+
+  const [scrubStatus, setScrubStatus] = useState("");
+
+  useEffect(() => {
+    if (scrubStatus) {
+      const timer = setTimeout(() => setScrubStatus(""), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [scrubStatus]);
 
   const loadClaims = useCallback(
     async ({ cursor = null, append = false } = {}) => {
@@ -238,14 +253,14 @@ function Claims() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-7">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
             Claims
           </h1>
 
-          <p className="mt-1 text-gray-500">
+          <p className="mt-2 text-sm text-slate-500">
             Review claims, readiness, and validation findings.
           </p>
         </div>
@@ -256,11 +271,13 @@ function Claims() {
         >
           New claim
         </Link>
+        <button type="button" disabled={!selectedClaimIds.length || isScrubbing} onClick={bulkScrub} title="Re-run validation on selected claims" className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium disabled:opacity-40">{isScrubbing ? "Scrubbing…" : `Bulk scrub${selectedClaimIds.length ? ` (${selectedClaimIds.length})` : ""}`}</button>
       </div>
+      <div className="sr-only" aria-live="polite">{scrubStatus}</div>
 
       <form
         onSubmit={applyFilters}
-        className="rounded-lg border bg-white p-4 shadow-sm"
+        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
       >
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <div>
@@ -274,7 +291,7 @@ function Claims() {
                 setPatientSearch(event.target.value)
               }
               placeholder="Search patient..."
-              className="w-full rounded-md border px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-50"
             />
           </div>
 
@@ -288,7 +305,7 @@ function Claims() {
               onChange={(event) =>
                 setStatus(event.target.value)
               }
-              className="w-full rounded-md border px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-50"
             >
               {STATUS_OPTIONS.map((option) => (
                 <option
@@ -312,7 +329,7 @@ function Claims() {
                 setPayerId(event.target.value)
               }
               placeholder="Payer UUID..."
-              className="w-full rounded-md border px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-50"
             />
           </div>
 
@@ -327,7 +344,7 @@ function Claims() {
               onChange={(event) =>
                 setServiceDateFrom(event.target.value)
               }
-              className="w-full rounded-md border px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-50"
             />
           </div>
 
@@ -342,7 +359,7 @@ function Claims() {
               onChange={(event) =>
                 setServiceDateTo(event.target.value)
               }
-              className="w-full rounded-md border px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-50"
             />
           </div>
         </div>
@@ -365,183 +382,129 @@ function Claims() {
         </div>
       </form>
 
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <div className="font-semibold text-red-800">
-            Unable to load claims
-          </div>
+      {error && <ErrorState error={error} onRetry={() => loadClaims()} />}
 
-          <p className="mt-1 text-sm text-red-700">
-            {error}
-          </p>
-
-          <button
-            type="button"
-            onClick={() => loadClaims()}
-            className="mt-3 rounded-md border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-700"
-          >
-            Try again
-          </button>
-        </div>
-      )}
-
-      <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1100px] text-left text-sm">
             <thead className="border-b bg-gray-50">
               <tr>
-                <th className="px-4 py-3 font-semibold">
+                <th scope="col" className="px-4 py-3"><input aria-label="Select all claims" type="checkbox" checked={claims.length > 0 && selectedClaimIds.length === claims.length} onChange={(event) => setSelectedClaimIds(event.target.checked ? claims.map((claim) => claim.id) : [])} /></th>
+                <th scope="col" className="px-4 py-3 font-semibold">
                   Claim number
                 </th>
 
-                <th className="px-4 py-3 font-semibold">
+                <th scope="col" className="px-4 py-3 font-semibold">
                   Patient
                 </th>
 
-                <th className="px-4 py-3 font-semibold">
+                <th scope="col" className="px-4 py-3 font-semibold">
                   Payer
                 </th>
 
-                <th className="px-4 py-3 font-semibold">
+                <th scope="col" className="px-4 py-3 font-semibold">
                   Service date
                 </th>
 
-                <th className="px-4 py-3 font-semibold">
+                <th scope="col" className="px-4 py-3 font-semibold">
                   Total
                 </th>
 
-                <th className="px-4 py-3 font-semibold">
+                <th scope="col" className="px-4 py-3 font-semibold">
                   Status
                 </th>
 
-                <th className="px-4 py-3 font-semibold">
+                <th scope="col" className="px-4 py-3 font-semibold">
                   Readiness
                 </th>
 
-                <th className="px-4 py-3 font-semibold">
+                <th scope="col" className="px-4 py-3 font-semibold">
                   Findings summary
                 </th>
               </tr>
             </thead>
 
             <tbody className="divide-y">
-              {loading &&
-                Array.from({ length: 6 }).map(
-                  (_, index) => (
-                    <SkeletonRow key={index} />
-                  )
-                )}
-
-              {!loading &&
-                claims.map((claim) => {
-                  const serviceDateFromValue =
-                    claim.serviceDateFrom ??
-                    claim.service_date_from;
-
-                  const serviceDateToValue =
-                    claim.serviceDateTo ??
-                    claim.service_date_to;
-
-                  let serviceDateText =
-                    formatDate(
-                      serviceDateFromValue
-                    );
-
-                  if (serviceDateToValue) {
-                    serviceDateText =
-                      formatDate(
-                        serviceDateFromValue
-                      ) +
-                      " - " +
-                      formatDate(
-                        serviceDateToValue
-                      );
-                  }
-
-                  return (
-                    <tr
-                      key={claim.id}
-                      className="hover:bg-gray-50"
-                    >
-                      <td className="whitespace-nowrap px-4 py-4 font-medium">
-                        {claim.claimNumber ??
-                          claim.claim_number ??
-                          "—"}
-                      </td>
-
-                      <td className="px-4 py-4">
-                        {claim.patientId ??
-                          claim.patient_id ??
-                          "—"}
-                      </td>
-
-                      <td className="px-4 py-4">
-                        {claim.payerId ??
-                          claim.payer_id ??
-                          "—"}
-                      </td>
-
-                      <td className="whitespace-nowrap px-4 py-4">
-                        {serviceDateText}
-                      </td>
-
-                      <td className="whitespace-nowrap px-4 py-4">
-                        {formatMoney(
-                          claim.totalAmount ??
-                            claim.total_amount
-                        )}
-                      </td>
-
-                      <td className="px-4 py-4">
-                        <StatusBadge
-                          status={
-                            claim.status?.value ??
-                            claim.status
-                          }
-                        />
-                      </td>
-
-                      <td className="px-4 py-4">
-                        <ScorePill
-                          score={
-                            claim.readinessScore ??
-                            claim.readiness_score ??
-                            0
-                          }
-                        />
-                      </td>
-
-                      <td className="max-w-[350px] px-4 py-4">
-                        <div className="truncate">
-                          {getFindingsSummary(
-                            claim.findingsSummary ??
-                              claim.findings_summary
+              {loading ? (
+                <tr>
+                  <td colSpan={9} className="p-8 text-center">
+                    <LoadingState message="Loading claims..." />
+                  </td>
+                </tr>
+              ) : (
+                <>
+                  {claims.map((claim) => {
+                    const serviceDateText = claim.serviceDate ?? claim.service_date ?? "—";
+                    return (
+                      <tr key={claim.id}>
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedClaimIds.includes(claim.id)}
+                            onChange={(event) =>
+                              setSelectedClaimIds((previous) =>
+                                event.target.checked
+                                  ? [...previous, claim.id]
+                                  : previous.filter((id) => id !== claim.id)
+                              )
+                            }
+                          />
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-4 font-medium">
+                          {claim.claimNumber ??
+                            claim.claim_number ??
+                            "—"}
+                        </td>
+                        <td className="px-4 py-4">
+                          {claim.patientId ??
+                            claim.patient_id ??
+                            "—"}
+                        </td>
+                        <td className="px-4 py-4">
+                          {claim.payerId ??
+                            claim.payer_id ??
+                            "—"}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-4">
+                          {serviceDateText}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-4">
+                          {formatMoney(
+                            claim.totalAmount ??
+                              claim.total_amount
                           )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-
-              {!loading &&
-                !error &&
-                claims.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={8}
-                      className="px-6 py-16 text-center"
-                    >
-                      <div className="text-lg font-semibold">
-                        No claims found
-                      </div>
-
-                      <p className="mt-1 text-sm text-gray-500">
-                        Try changing your filters or search
-                        criteria.
-                      </p>
-                    </td>
-                  </tr>
-                )}
+                        </td>
+                        <td className="px-4 py-4">
+                          <StatusBadge
+                            status={
+                              claim.status?.value ??
+                              claim.status
+                            }
+                          />
+                        </td>
+                        <td className="px-4 py-4">
+                          <ScorePill
+                            score={
+                              claim.readinessScore ??
+                              claim.readiness_score ??
+                              0
+                            }
+                          />
+                        </td>
+                        <td className="max-w-[350px] px-4 py-4">
+                          <div className="truncate">
+                            {getFindingsSummary(
+                              claim.findingsSummary ??
+                                claim.findings_summary
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!error && claims.length === 0 && <EmptyState title="No claims found" description="Try changing your filters or search criteria." />}
+                </>
+              )}
             </tbody>
           </table>
         </div>

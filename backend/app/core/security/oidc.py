@@ -61,7 +61,18 @@ def exchange_refresh_token(refresh_token: str) -> dict[str, Any]:
     }
     if settings.OIDC_CLIENT_SECRET:
         payload["client_secret"] = settings.OIDC_CLIENT_SECRET
-    return _post_form(oidc_token_endpoint(), payload)
+
+    try:
+        return _post_form(oidc_token_endpoint(), payload)
+    except HTTPException as e:
+        if e.status_code == 502:
+            # If the refresh token is invalid or expired, return a 401
+            # so the frontend knows to send the user back to login
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session expired. Please log in again."
+            )
+        raise e
 
 
 def logout_session(refresh_token: str) -> None:
@@ -74,16 +85,20 @@ def logout_session(refresh_token: str) -> None:
     _post_form(oidc_logout_endpoint(), payload, expect_json=False)
 
 
+from app.config import settings
+
 def oidc_authorization_endpoint() -> str:
     return f"{settings.OIDC_ISSUER_URL.rstrip('/')}/protocol/openid-connect/auth"
 
-
 def oidc_token_endpoint() -> str:
-    return f"{settings.OIDC_ISSUER_URL.rstrip('/')}/protocol/openid-connect/token"
-
+    # Use internal URL for server-to-server communication
+    issuer = getattr(settings, "OIDC_INTERNAL_ISSUER_URL", settings.OIDC_ISSUER_URL)
+    return f"{issuer.rstrip('/')}/protocol/openid-connect/token"
 
 def oidc_logout_endpoint() -> str:
-    return f"{settings.OIDC_ISSUER_URL.rstrip('/')}/protocol/openid-connect/logout"
+    # Use internal URL for server-to-server communication
+    issuer = getattr(settings, "OIDC_INTERNAL_ISSUER_URL", settings.OIDC_ISSUER_URL)
+    return f"{issuer.rstrip('/')}/protocol/openid-connect/logout"
 
 
 def oidc_redirect_uri() -> str:
