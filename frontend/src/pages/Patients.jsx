@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { fetchClaims } from "@/api/api";
-import { EmptyState, LoadingState, ErrorState } from "@/components/shared";
+import { EmptyState, LoadingState, ErrorState, SkeletonRow } from "@/components/shared";
 
 function formatDate(value) {
   if (!value) {
@@ -86,44 +86,32 @@ function Patients() {
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
 
-  useEffect(() => {
+  const loadClaims = useCallback(async () => {
     if (!initialized || !authenticated || !accessToken) {
       return;
     }
 
-    let isMounted = true;
+    setIsLoading(true);
+    setLoadError("");
 
-    async function loadClaims() {
-      setIsLoading(true);
-      setLoadError("");
-
-      try {
-        const response = await fetchClaims(accessToken, { limit: 200 });
-        if (isMounted) {
-          setClaims(response?.items ?? []);
-        }
-      } catch (error) {
-        if (isMounted) {
-          setClaims([]);
-          setLoadError(
-            error?.response?.body?.detail ||
-              error?.message ||
-              "Unable to load patients data."
-          );
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+    try {
+      const response = await fetchClaims(accessToken, { limit: 100 });
+      setClaims(response?.items ?? []);
+    } catch (error) {
+      setClaims([]);
+      setLoadError(
+        error?.response?.body?.detail ||
+          error?.message ||
+          "Unable to load patients data."
+      );
+    } finally {
+      setIsLoading(false);
     }
-
-    loadClaims();
-
-    return () => {
-      isMounted = false;
-    };
   }, [initialized, authenticated, accessToken]);
+
+  useEffect(() => {
+    loadClaims();
+  }, [loadClaims]);
 
   const patientRows = useMemo(() => toPatientRows(claims), [claims]);
 
@@ -206,7 +194,7 @@ function Patients() {
         />
       </section>
 
-      {loadError && <ErrorState error={loadError} onRetry={() => {}} />}
+      {loadError && <ErrorState error={loadError} onRetry={loadClaims} />}
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
@@ -222,15 +210,20 @@ function Patients() {
             </thead>
             <tbody className="divide-y">
               {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center">
-                    <LoadingState message="Loading patients..." />
-                  </td>
-                </tr>
+                <>
+                  <SkeletonRow />
+                  <SkeletonRow />
+                  <SkeletonRow />
+                  <SkeletonRow />
+                  <SkeletonRow />
+                </>
               ) : filteredRows.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center">
-                    <EmptyState title="No patients found" description="Try a different search query or check your data." />
+                <tr className="bg-white">
+                  <td colSpan={5} className="p-12">
+                    <EmptyState
+                      title="No patients found"
+                      description="Try a different search query or check your data."
+                    />
                   </td>
                 </tr>
               ) : (

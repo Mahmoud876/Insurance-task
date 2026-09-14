@@ -1,3 +1,3 @@
 export { EmptyState } from './EmptyState';
-export { LoadingState } from './LoadingState';
+export { LoadingState, SkeletonRow } from './LoadingState';
 export { ErrorState } from './ErrorState';
