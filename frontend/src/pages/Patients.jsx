@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { fetchClaims } from "@/api/api";
+import { EmptyState, LoadingState, ErrorState } from "@/components/shared";
 
 function formatDate(value) {
   if (!value) {
@@ -170,11 +171,11 @@ function Patients() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-7">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Patients</h1>
-          <p className="mt-1 text-gray-500">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Patients</h1>
+          <p className="mt-2 text-sm text-slate-500">
             Patient overview based on recent claim activity.
           </p>
         </div>
@@ -195,24 +196,19 @@ function Patients() {
         </article>
       </section>
 
-      <section className="rounded-lg border bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <label className="mb-2 block text-sm font-medium">Search patient ID</label>
         <input
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="Type patient ID..."
-          className="w-full rounded-md border px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-50"
         />
       </section>
 
-      {loadError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <div className="font-semibold text-red-800">Unable to load patients</div>
-          <p className="mt-1 text-sm text-red-700">{loadError}</p>
-        </div>
-      )}
+      {loadError && <ErrorState error={loadError} onRetry={() => {}} />}
 
-      <section className="overflow-hidden rounded-lg border bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="border-b bg-gray-50">
@@ -224,33 +220,30 @@ function Patients() {
                 <th className="px-4 py-3 font-semibold">Total billed</th>
               </tr>
             </thead>
-            <tbody>
-              {isLoading && (
+            <tbody className="divide-y">
+              {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
-                    Loading patients...
+                  <td colSpan={5} className="p-8 text-center">
+                    <LoadingState message="Loading patients..." />
                   </td>
                 </tr>
-              )}
-
-              {!isLoading && filteredRows.length === 0 && (
+              ) : filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
-                    No patients found.
+                  <td colSpan={5} className="p-8 text-center">
+                    <EmptyState title="No patients found" description="Try a different search query or check your data." />
                   </td>
                 </tr>
-              )}
-
-              {!isLoading &&
+              ) : (
                 filteredRows.map((row) => (
-                  <tr key={row.patientId} className="border-b last:border-b-0 hover:bg-gray-50">
+                  <tr key={row.patientId} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-900">{row.patientId}</td>
                     <td className="px-4 py-3 text-gray-700">{row.claimCount}</td>
                     <td className="px-4 py-3 text-gray-700">{row.openClaims}</td>
                     <td className="px-4 py-3 text-gray-700">{formatDate(row.lastServiceDate)}</td>
                     <td className="px-4 py-3 text-gray-700">{formatMoney(row.totalBilled)}</td>
                   </tr>
-                ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -260,4 +253,3 @@ function Patients() {
 }
 
 export default Patients;
-

@@ -22,8 +22,11 @@ from app.modules.rules.pipeline_types import (
 )
 from app.modules.rules.registry import OperatorRegistry
 from app.modules.rules.resolver import ResolvedRuleSet, RuleConfig
+from app.modules.rules.engine import ExpressionEvaluator
 
 logger = logging.getLogger(__name__)
+
+_evaluator = ExpressionEvaluator()
 
 
 _CATEGORY_PREFIX: dict[str, str] = {

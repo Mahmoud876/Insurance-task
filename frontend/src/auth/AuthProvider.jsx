@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AuthContext } from "./AuthContext";
 
-const AUTH_API_BASE_URL = import.meta.env.VITE_AUTH_API_BASE_URL ?? "http://localhost:8000";
+const AUTH_API_BASE_URL = (import.meta.env.VITE_AUTH_API_BASE_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
 function AuthProvider({ children }) {
   const [authenticated, setAuthenticated] = useState(false);
@@ -35,25 +35,31 @@ function AuthProvider({ children }) {
   }, [clearRefreshTimer]);
 
   const refreshAccessToken = useCallback(async () => {
-    const response = await fetch(`${AUTH_API_BASE_URL}/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-    });
+    try {
+      const response = await fetch(`${AUTH_API_BASE_URL}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+      });
 
-    if (response.status === 401) {
+      if (response.status === 401) {
+        setAccessToken(null);
+        setAuthenticated(false);
+        return null;
+      }
+      if (!response.ok) {
+        throw new Error(`Refresh failed with status ${response.status}`);
+      }
+
+      const payload = await response.json();
+      setAccessToken(payload.access_token);
+      setAuthenticated(true);
+      scheduleRefresh(payload.expires_in);
+      return payload.access_token;
+    } catch (error) {
       setAccessToken(null);
       setAuthenticated(false);
       return null;
     }
-    if (!response.ok) {
-      throw new Error(`Refresh failed with status ${response.status}`);
-    }
-
-    const payload = await response.json();
-    setAccessToken(payload.access_token);
-    setAuthenticated(true);
-    scheduleRefresh(payload.expires_in);
-    return payload.access_token;
   }, [scheduleRefresh]);
 
   useEffect(() => {
@@ -80,6 +86,7 @@ function AuthProvider({ children }) {
   }, [clearRefreshTimer, refreshAccessToken]);
 
   function login() {
+    console.log("Login button clicked. Redirecting to:", `${AUTH_API_BASE_URL}/auth/login`);
     window.location.assign(`${AUTH_API_BASE_URL}/auth/login`);
   }
 

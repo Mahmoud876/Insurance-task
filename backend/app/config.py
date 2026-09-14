@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     FIELD_ENCRYPTION_KEY: str = "pMrlK2Vj_wmEcMnFP2mso6L-nJYB6VX6biGeBmBP9AA="
 
     OIDC_ISSUER_URL: str = "http://localhost:8080/realms/insurance"
+    OIDC_INTERNAL_ISSUER_URL: str = "http://keycloak:8080/realms/insurance"
     OIDC_CLIENT_ID: str = "insurance-frontend"
     OIDC_CLIENT_SECRET: str | None = None
     OIDC_SCOPE: str = "openid profile email offline_access"

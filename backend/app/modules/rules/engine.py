@@ -120,7 +120,10 @@ class ExpressionEvaluator:
                 except ValueError:
                     return None
             else:
-                return None
+                if hasattr(current, part):
+                    current = getattr(current, part)
+                else:
+                    return None
         return current
 
     def _op_var(self, args: list[Any], data: Any, depth: int) -> Any:

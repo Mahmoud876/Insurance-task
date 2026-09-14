@@ -92,23 +92,58 @@ cd <repository-name>
 
 ## Running the Project
 
-### Frontend
+Follow these steps in order to get the system running.
+
+### 1. Infrastructure (Docker)
+The easiest way to run the supporting services (Database, Cache, Storage, and Identity Provider) is using Docker Compose.
 
 ```bash
+docker compose up -d
+```
+
+#### Keycloak Configuration
+Once Keycloak is running at `http://localhost:8080`, you must configure the authentication:
+
+1. **Admin Login**: Go to `http://localhost:8080` and log in with `admin` / `admin`.
+2. **Create Realm**: Create a new realm named `insurance`.
+3. **Create Client**:
+   - **Client ID**: `insurance-frontend`
+   - **Client Protocol**: `openid-connect`
+   - **Client authentication**: **Off** (This makes it a Public Client)
+   - **Authorization**: **Off**
+   - **Valid Redirect URIs**: `http://localhost:5173/*`
+   - **Web Origins**: `http://localhost:5173`
+
+### 2. Backend API
+The backend provides the logic and connects the frontend to the identity provider.
+
+```bash
+# Navigate to backend folder
+cd backend
+
+# Install dependencies (using uv)
+uv sync
+
+# Run the API
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 3. Frontend UI
+The user interface allows you to manage claims and review findings.
+
+```bash
+# Open a new terminal tab
 cd frontend
+
+# Install dependencies (do this once)
 npm install
+
+# Start the development server
 npm run dev
 ```
 
-### Backend
+Once the frontend is running, open `http://localhost:5173` in your browser.
 
-Backend setup instructions will be added after the backend is implemented.
-
-### Docker
-
-```bash
-docker compose up
-```
 
 ---
 
