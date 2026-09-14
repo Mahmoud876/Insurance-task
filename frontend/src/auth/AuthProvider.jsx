@@ -70,13 +70,22 @@ function AuthProvider({ children }) {
     if (initRun.current) return;
     initRun.current = true;
 
+    console.log("[AuthProvider] Initializing authentication...");
     refreshAccessToken()
+      .then((token) => {
+        if (token) {
+          console.log("[AuthProvider] Authentication successful. Token received.");
+        } else {
+          console.log("[AuthProvider] Authentication check returned no token (User not signed in).");
+        }
+      })
       .catch((err) => {
-        console.error("Initial refresh failed", err);
+        console.error("[AuthProvider] Initial refresh failed:", err);
         setAccessToken(null);
         setAuthenticated(false);
       })
       .finally(() => {
+        console.log("[AuthProvider] Initialization complete.");
         setInitialized(true);
       });
 
