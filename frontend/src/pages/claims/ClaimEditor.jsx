@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -6,6 +6,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import ProcedureCodeInput from './ProcedureCodeInput';
 import { claimSchema, createEmptyLine, defaultClaimValues } from './claimSchema';
 import FindingsWorkbench, { makeFindings } from './FindingsWorkbench';
+import { useAuth } from '../../auth/AuthContext';
+import { API_BASE_URL } from '../../api/api';
+import { ErrorState } from '../../components/shared/ErrorState';
+import { LoadingState } from '../../components/shared/LoadingState';
 
 const gridColumns = [
   { key: 'procedure_code', label: 'Procedure', className: 'min-w-[180px]' },
@@ -52,9 +56,38 @@ function parseErrorMessage(error) {
   return 'Unable to save the claim right now.';
 }
 
+function normalizeServerClaim(claim) {
+  return {
+    patient_id: claim.patient_id ?? '',
+    provider_id: claim.provider_id ?? '',
+    payer_id: claim.payer_id ?? '',
+    service_date_from: claim.service_date_from ?? '',
+    service_date_to: claim.service_date_to ?? '',
+    total_amount: claim.total_amount ?? '',
+    is_secondary_claim: claim.is_secondary_claim ?? false,
+    narrative: '',
+    authorization_number: '',
+    attachments: [],
+  };
+}
+
+function normalizeServerLines(lines) {
+  if (!Array.isArray(lines) || lines.length === 0) {
+    return [createEmptyLine()];
+  }
+
+  return lines.map((line) => ({
+    procedure_code: line.procedure_code ?? '',
+    tooth_number: line.tooth_number ?? '',
+    surface: line.surface ?? '',
+    charge_amount: line.charge_amount ?? '',
+  }));
+}
+
 function ClaimEditor() {
   const { claimId } = useParams();
   const navigate = useNavigate();
+  const { accessToken } = useAuth();
 
   const form = useForm({
     resolver: zodResolver(claimSchema),
@@ -75,12 +108,32 @@ function ClaimEditor() {
   const [dispositions, setDispositions] = useState({});
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [attachments, setAttachments] = useState([]);
+  const [selectedDocType, setSelectedDocType] = useState('attachment');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [scrubResult, setScrubResult] = useState(null);
+  const [claimMeta, setClaimMeta] = useState(null);
   const cellRefs = useRef({});
 
   const watchedLines = form.watch('lines') ?? defaultClaimValues.lines;
   const watchedValues = form.watch();
   const currentTotal = useMemo(() => getLineTotal(watchedLines), [watchedLines]);
   const blockingFindings = makeFindings(watchedValues).filter((finding) => finding.severity === 'ERROR' && !dispositions[finding.code]).length;
+
+  function authenticatedFetchRef(path, options = {}) {
+    const headers = new Headers(options.headers || {});
+    if (accessToken) {
+      headers.set('Authorization', `Bearer ${accessToken}`);
+    }
+    if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+    return fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  }
+
+  const authenticatedFetch = useCallback(authenticatedFetchRef, [accessToken]);
 
   useEffect(() => {
     const nextTotal = toMoney(currentTotal);
@@ -110,35 +163,46 @@ function ClaimEditor() {
       setSaveError('');
 
       try {
-        const response = await fetch(`/v1/claims/${claimId}`);
+        const [claimResponse, linesResponse, attachmentsResponse] = await Promise.all([
+          authenticatedFetch(`/api/v1/claims/${claimId}`),
+          authenticatedFetch(`/api/v1/claims/${claimId}/lines`),
+          authenticatedFetch(`/api/v1/claims/${claimId}/attachments`),
+        ]);
 
-        if (!response.ok) {
+        if (!claimResponse.ok || !linesResponse.ok || !attachmentsResponse.ok) {
           throw new Error('Unable to load the claim.');
         }
 
-        const claim = await response.json();
+        const claim = await claimResponse.json();
+        const lines = await linesResponse.json();
+        const serverAttachments = await attachmentsResponse.json();
+
+        if (!isMounted) {
+          return;
+        }
+
         const normalized = {
-          patient_id: claim.patient_id ?? '',
-          provider_id: claim.provider_id ?? '',
-          payer_id: claim.payer_id ?? '',
-          service_date_from: claim.service_date_from ?? '',
-          service_date_to: claim.service_date_to ?? '',
-          total_amount: claim.total_amount ?? toMoney(getLineTotal(claim.lines ?? [])),
-          lines: Array.isArray(claim.lines) && claim.lines.length > 0
-            ? claim.lines.map((line) => ({
-                procedure_code: line.procedure_code ?? '',
-                tooth_number: line.tooth_number ?? '',
-                surface: line.surface ?? '',
-                charge_amount: line.charge_amount ?? '',
-              }))
-            : [createEmptyLine()],
+          ...normalizeServerClaim(claim),
+          attachments: serverAttachments.map((attachment) => ({
+            name: attachment.file_type,
+            type: attachment.file_type,
+            size: 0,
+          })),
+          lines: normalizeServerLines(lines),
         };
 
-        if (isMounted) {
-          form.reset(normalized);
-          setLastSavedValues(cloneClaim(normalized));
-          setStatusMessage('Claim loaded');
-        }
+        form.reset(normalized);
+        setLastSavedValues(cloneClaim(normalized));
+        setAttachments(serverAttachments);
+        setClaimMeta({
+          id: claim.id,
+          claim_number: claim.claim_number,
+          status: claim.status,
+          readiness_score: claim.readiness_score,
+          etag: claimResponse.headers.get('etag'),
+        });
+        setScrubResult(claim.findings_summary ?? []);
+        setStatusMessage('Claim loaded');
       } catch (error) {
         if (isMounted) {
           setSaveError(parseErrorMessage(error));
@@ -155,7 +219,7 @@ function ClaimEditor() {
     return () => {
       isMounted = false;
     };
-  }, [claimId, form]);
+  }, [claimId, form, accessToken, authenticatedFetch]);
 
   function focusCell(rowIndex, columnIndex) {
     const key = `${rowIndex}-${columnIndex}`;
@@ -221,20 +285,24 @@ function ClaimEditor() {
         service_date_from: optimisticValues.service_date_from,
         service_date_to: optimisticValues.service_date_to,
         total_amount: optimisticValues.total_amount,
+        is_secondary_claim: optimisticValues.is_secondary_claim,
       };
 
       let response;
 
       if (claimId) {
-        response = await fetch(`/v1/claims/${claimId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+        const headers = { 'Content-Type': 'application/json' };
+        if (claimMeta?.etag) {
+          headers['If-Match'] = claimMeta.etag;
+        }
+        response = await authenticatedFetch(`/api/v1/claims/${claimId}`, {
+          method: 'PUT',
+          headers,
           body: JSON.stringify(payload),
         });
       } else {
-        response = await fetch('/v1/claims', {
+        response = await authenticatedFetch('/api/v1/claims', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
       }
@@ -244,13 +312,26 @@ function ClaimEditor() {
       }
 
       const savedClaim = await response.json();
+
+      if (claimId) {
+        const linesPayload = values.lines.map((line) => ({
+          procedure_code: line.procedure_code,
+          tooth_number: line.tooth_number || null,
+          surface: line.surface || null,
+          charge_amount: toMoney(line.charge_amount),
+        }));
+        const linesResponse = await authenticatedFetch(`/api/v1/claims/${claimId}/lines`, {
+          method: 'PUT',
+          body: JSON.stringify(linesPayload),
+        });
+
+        if (!linesResponse.ok) {
+          throw new Error('Claim saved, but line items could not be saved.');
+        }
+      }
+
       const nextValues = {
-        patient_id: savedClaim.patient_id ?? optimisticValues.patient_id,
-        provider_id: savedClaim.provider_id ?? optimisticValues.provider_id,
-        payer_id: savedClaim.payer_id ?? optimisticValues.payer_id ?? '',
-        service_date_from: savedClaim.service_date_from ?? optimisticValues.service_date_from,
-        service_date_to: savedClaim.service_date_to ?? optimisticValues.service_date_to,
-        total_amount: savedClaim.total_amount ?? optimisticValues.total_amount,
+        ...normalizeServerClaim(savedClaim),
         lines: values.lines.map((line) => ({
           procedure_code: line.procedure_code,
           tooth_number: line.tooth_number ?? '',
@@ -261,6 +342,14 @@ function ClaimEditor() {
 
       form.reset(nextValues);
       setLastSavedValues(cloneClaim(nextValues));
+      setClaimMeta({
+        id: savedClaim.id,
+        claim_number: savedClaim.claim_number,
+        status: savedClaim.status,
+        readiness_score: savedClaim.readiness_score,
+        etag: response.headers.get('etag'),
+      });
+      setScrubResult(savedClaim.findings_summary ?? []);
       setStatusMessage(claimId ? 'Claim updated' : 'Claim created');
 
       if (!claimId && savedClaim.id) {
@@ -272,6 +361,73 @@ function ClaimEditor() {
       setStatusMessage('Changes rolled back');
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function uploadAttachment() {
+    if (!selectedFile || !claimId) {
+      return;
+    }
+    setIsUploading(true);
+    setSaveError('');
+    try {
+      const body = new FormData();
+      body.append('file', selectedFile);
+      body.append('doc_type', selectedDocType);
+
+      const response = await authenticatedFetch(`/api/v1/claims/${claimId}/attachments`, {
+        method: 'POST',
+        body,
+      });
+
+      if (!response.ok) {
+        throw new Error('The attachment could not be uploaded.');
+      }
+
+      const attachment = await response.json();
+      setAttachments((previous) => [attachment, ...previous]);
+      form.setValue(
+        'attachments',
+        [...(form.getValues('attachments') ?? []), { name: selectedFile.name, type: selectedFile.type, size: selectedFile.size }],
+        { shouldDirty: true, shouldTouch: true },
+      );
+      setSelectedFile(null);
+      setStatusMessage('Attachment uploaded');
+    } catch (error) {
+      setSaveError(parseErrorMessage(error));
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  async function runScrub() {
+    if (!claimId) {
+      return;
+    }
+    setIsScrubbing(true);
+    setSaveError('');
+    try {
+      const response = await authenticatedFetch(`/api/v1/claims/${claimId}/scrub`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to scrub the claim.');
+      }
+
+      const scrubbed = await response.json();
+      setScrubResult(scrubbed.findings_summary ?? []);
+      setClaimMeta((meta) => ({
+        ...meta,
+        status: scrubbed.status,
+        readiness_score: scrubbed.readiness_score,
+        etag: response.headers.get('etag') ?? meta?.etag,
+      }));
+      setStatusMessage('Claim scrubbed — findings updated');
+    } catch (error) {
+      setSaveError(parseErrorMessage(error));
+    } finally {
+      setIsScrubbing(false);
     }
   }
 
@@ -287,26 +443,27 @@ function ClaimEditor() {
     Object.entries(fix).forEach(([path, value]) => form.setValue(path, value, { shouldDirty: true, shouldTouch: true, shouldValidate: true }));
   }
 
-  async function recordDisposition(finding, disposition, reason) {
+  function recordDisposition(finding, disposition, reason) {
     const entry = { disposition, reason, actor: 'current-user', at: new Date().toISOString() };
     setDispositions((previous) => ({ ...previous, [finding.code]: entry }));
-    if (!claimId) return;
-    try {
-      await fetch(`/v1/claims/${claimId}/findings/${finding.code}/disposition`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
-    } catch { /* Retain the local audit entry until the API is available. */ }
   }
 
   async function submitClaim() {
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/v1/claims/${claimId}/submit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispositions }) });
+      const response = await authenticatedFetch(`/api/v1/claims/${claimId}/submit`, {
+        method: 'POST',
+        body: JSON.stringify({ dispositions }),
+      });
       if (!response.ok) throw new Error('Unable to submit claim.');
       setStatusMessage('Claim submitted and moved to Submitted.');
       setShowSubmitConfirm(false);
       navigate('/claims');
     } catch (error) {
       setSaveError(parseErrorMessage(error));
-    } finally { setIsSubmitting(false); }
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   function handleGridAddRow() {
@@ -326,7 +483,9 @@ function ClaimEditor() {
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
             Claim editor
           </p>
-          <h1 className="mt-2 text-3xl font-bold text-slate-900">Draft claim</h1>
+          <h1 className="mt-2 text-3xl font-bold text-slate-900">
+            {claimMeta?.claim_number ? `Claim ${claimMeta.claim_number}` : 'Draft claim'}
+          </h1>
         </div>
 
         <div className="flex items-center gap-3">
@@ -336,6 +495,14 @@ function ClaimEditor() {
           >
             Back to claims
           </Link>
+          <button
+            type="button"
+            onClick={runScrub}
+            disabled={!claimId || isScrubbing || isSaving || isLoading}
+            className="rounded-md bg-indigo-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            {isScrubbing ? 'Scrubbing…' : 'Run scrub'}
+          </button>
           <button
             type="button"
             onClick={onSubmit}
@@ -438,6 +605,23 @@ function ClaimEditor() {
                   placeholder="0.00"
                 />
               </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <input
+                    id="is_secondary_claim"
+                    data-path="is_secondary_claim"
+                    type="checkbox"
+                    {...form.register('is_secondary_claim')}
+                    className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                  />
+                  Secondary claim (COB)
+                </label>
+                <p className="mt-1 pl-6 text-xs text-slate-500">
+                  Mark if this claim is being submitted to a second payer.
+                </p>
+              </div>
+
               <div>
                 <label htmlFor="authorization_number" className="mb-1 block text-sm font-medium text-slate-700">Authorisation number</label>
                 <input id="authorization_number" data-path="authorization_number" {...form.register('authorization_number')} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Required for some procedures" />
@@ -446,9 +630,69 @@ function ClaimEditor() {
                 <label htmlFor="narrative" className="mb-1 block text-sm font-medium text-slate-700">Clinical narrative</label>
                 <textarea id="narrative" data-path="narrative" {...form.register('narrative')} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" rows="3" placeholder="Clinical necessity" />
               </div>
-              <div>
-                <label htmlFor="attachments" className="mb-1 block text-sm font-medium text-slate-700">Attachments</label>
-                <input id="attachments" data-path="attachments" type="file" multiple accept="application/pdf,image/jpeg,image/png" onChange={(event) => form.setValue('attachments', Array.from(event.target.files || []).map((file) => ({ name: file.name, type: file.type, size: file.size })), { shouldDirty: true })} className="w-full text-xs" />
+            </div>
+
+            <div className="mt-4 border-t border-slate-200 pt-4">
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Attachments</h2>
+
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="doc_type_select" className="mb-1 block text-sm font-medium text-slate-700">Document type</label>
+                  <select
+                    id="doc_type_select"
+                    value={selectedDocType}
+                    onChange={(event) => setSelectedDocType(event.target.value)}
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  >
+                    <option value="attachment">General attachment</option>
+                    <option value="x-ray">X-ray</option>
+                    <option value="primary_eob">EOB (primary payer)</option>
+                    <option value="secondary_eob">EOB (secondary payer)</option>
+                    <option value="narrative">Narrative</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="attachment_file" className="mb-1 block text-sm font-medium text-slate-700">File</label>
+                  <input
+                    id="attachment_file"
+                    type="file"
+                    accept="application/pdf,image/jpeg,image/png"
+                    onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
+                    className="w-full text-xs"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={uploadAttachment}
+                  disabled={!selectedFile || !claimId || isUploading}
+                  className="w-full rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-300"
+                >
+                  {isUploading ? 'Uploading…' : 'Upload attachment'}
+                </button>
+
+                <ul className="space-y-2">
+                  {attachments.map((attachment) => (
+                    <li key={attachment.id} className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700">
+                          {attachment.doc_type}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          {new Date(attachment.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[11px] text-slate-600">{attachment.file_type}</p>
+                      <p className="mt-1 line-clamp-3 text-[11px] text-slate-500">
+                        {attachment.ocr_text ? `OCR: ${attachment.ocr_text}` : 'No OCR text'}
+                      </p>
+                    </li>
+                  ))}
+                  {attachments.length === 0 ? (
+                    <li className="text-xs text-slate-400">No attachments uploaded yet.</li>
+                  ) : null}
+                </ul>
               </div>
             </div>
           </aside>
@@ -549,7 +793,45 @@ function ClaimEditor() {
             </div>
           </main>
 
-          <FindingsWorkbench values={watchedValues} onGoTo={goToField} onFix={applyFix} dispositions={dispositions} onDisposition={recordDisposition} />
+          <div className="space-y-6">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Backend scrub</h2>
+              </div>
+
+              <div className="space-y-2 text-xs text-slate-600">
+                <p>
+                  Status: <span className="font-medium text-slate-800">{claimMeta?.status ?? '—'}</span>
+                </p>
+                <p>
+                  Readiness score: <span className="font-medium text-slate-800">{claimMeta?.readiness_score ?? '—'}</span>
+                </p>
+                <p>
+                  Claim number: <span className="font-medium text-slate-800">{claimMeta?.claim_number ?? '—'}</span>
+                </p>
+              </div>
+
+              {Array.isArray(scrubResult) && scrubResult.length > 0 ? (
+                <ul className="mt-4 space-y-2">
+                  {scrubResult.map((finding, index) => (
+                    <li key={`${finding.rule_id ?? finding.code ?? 'finding'}-${index}`} className="rounded-md border border-slate-200 px-3 py-2 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-slate-800">{finding.rule_id ?? finding.code ?? 'Finding'}</span>
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${finding.severity === 'ERROR' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                          {finding.severity}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-slate-600">{finding.summary ?? finding.message ?? ''}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : Array.isArray(scrubResult) ? (
+                <p className="mt-4 text-xs text-emerald-700">No findings after the last scrub.</p>
+              ) : null}
+            </div>
+
+            <FindingsWorkbench values={watchedValues} onGoTo={goToField} onFix={applyFix} dispositions={dispositions} onDisposition={recordDisposition} />
+          </div>
         </div>
       )}
       {showSubmitConfirm ? <div role="dialog" aria-label="Submit claim confirmation" className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4"><div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"><h2 className="text-lg font-bold">Submit this claim?</h2><p className="mt-2 text-sm text-slate-600">This will transition the claim from Draft to Submitted.</p><div className="mt-5 flex justify-end gap-3"><button type="button" onClick={() => setShowSubmitConfirm(false)} className="text-sm underline">Cancel</button><button type="button" onClick={submitClaim} disabled={isSubmitting} className="rounded bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">{isSubmitting ? 'Submitting…' : 'Confirm submit'}</button></div></div></div> : null}

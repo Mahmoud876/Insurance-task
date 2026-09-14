@@ -6,6 +6,8 @@ from uuid import UUID, uuid4
 
 os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
+# OCR is disabled by default in tests; EOB/attachment OCR tests stub the engine.
+os.environ.setdefault("OCR_ENABLED", "false")
 # Pin the scratch database before any app import: app.main calls load_dotenv()
 # which would otherwise inject the service's .env DATABASE_URL (the dev DB).
 # Setting it here makes later load_dotenv() calls (override=False) no-ops.

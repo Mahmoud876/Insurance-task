@@ -34,6 +34,11 @@ def process_card_ocr(
         description="Optional payer plan override; otherwise resolved from the extracted payer.",
     ),
 ) -> CardOCRResponse:
+    if settings.ENVIRONMENT == "production":
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="OCR is not available in the production environment",
+        )
     data = read_upload_with_cap_sync(file, settings.MAX_UPLOAD_SIZE_BYTES)
     file_type = sniff_mime_type(data, file.content_type)
 

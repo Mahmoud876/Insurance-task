@@ -10,6 +10,8 @@ class AttachmentResponse(BaseModel):
     id: UUID
     claim_id: UUID
     file_type: str
+    doc_type: str
+    ocr_text: str | None = None
     created_at: datetime
 
 

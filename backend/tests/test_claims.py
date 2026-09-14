@@ -340,6 +340,61 @@ def test_get_missing_claim_returns_problem_json(client, db_session):
     assert data["detail"] == "Claim not found"
 
 
+def test_replace_and_list_claim_lines(client, db_session):
+    tenant, patient, provider = create_test_data(db_session)
+
+    claim = Claim(
+        tenant_id=tenant.id,
+        patient_id=patient.id,
+        provider_id=provider.id,
+        total_amount=Decimal("250.00"),
+    )
+    db_session.add(claim)
+    db_session.commit()
+    db_session.refresh(claim)
+
+    headers = auth_headers(tenant.id)
+    lines = [
+        {"procedure_code": "D0274", "tooth_number": "3", "surface": "O", "charge_amount": "125.00"},
+        {
+            "procedure_code": "D1110",
+            "tooth_number": None,
+            "surface": None,
+            "charge_amount": "125.00",
+        },
+    ]
+    put_response = client.put(
+        f"/api/v1/claims/{claim.id}/lines",
+        headers=headers,
+        json=lines,
+    )
+    assert put_response.status_code == 200
+    assert len(put_response.json()) == 2
+
+    get_response = client.get(
+        f"/api/v1/claims/{claim.id}/lines",
+        headers=headers,
+    )
+    assert get_response.status_code == 200
+    body = get_response.json()
+    assert len(body) == 2
+    assert body[0]["procedure_code"] == "D0274"
+    assert body[0]["tooth_number"] == "3"
+    assert body[1]["procedure_code"] == "D1110"
+    assert body[1]["tooth_number"] is None
+
+
+def test_claim_lines_404_for_missing_claim(client, db_session):
+    tenant, _, _ = create_test_data(db_session)
+
+    response = client.get(
+        f"/api/v1/claims/{uuid4()}/lines",
+        headers=auth_headers(tenant.id),
+    )
+
+    assert response.status_code == 404
+
+
 def test_unauthenticated_claims_are_rejected(client):
     response = client.get("/api/v1/claims")
 

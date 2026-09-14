@@ -20,7 +20,9 @@ from app.core.errors import (
     validation_exception_handler,
 )
 from app.core.logging_config import setup_structured_logging
+from app.core.request_logging import RequestLoggingMiddleware
 from app.core.security.auth import get_auth_context
+from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.telemetry import configure_tracing, instrument_fastapi
 from app.modules.analytics.api import router as analytics_router
 from app.modules.autofix.api.autofix import router as autofix_router
@@ -69,6 +71,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestLoggingMiddleware)
 
 
 @app.middleware("http")

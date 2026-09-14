@@ -203,7 +203,7 @@ def has_attachment(claim: Claim, doc_type: str) -> bool:
     claim_attachments = claim.attachments
 
     for att in claim_attachments:
-        if att.file_type == doc_type:
+        if att.doc_type == doc_type or att.file_type == doc_type:
             return True
 
     return False

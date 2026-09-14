@@ -6,7 +6,7 @@ from datetime import date
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, UUID, Date, ForeignKey, Numeric, SmallInteger, String
+from sqlalchemy import JSON, UUID, Boolean, Date, ForeignKey, Numeric, SmallInteger, String
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -70,6 +70,7 @@ class Claim(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     findings_summary: Mapped[list[dict[str, Any]]] = mapped_column(
         JSON, nullable=False, default=list
     )
+    is_secondary_claim: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     patient: Mapped[Patient] = relationship("Patient", back_populates="claims")
 

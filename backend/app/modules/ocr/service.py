@@ -10,12 +10,21 @@ from sqlalchemy.orm import Session
 
 from app.modules.claims.models.insurance_policy import InsurancePolicy
 from app.modules.claims.models.patient import Patient
-from app.modules.ocr.engine import OcrEngine, image_from_bytes
+from app.modules.ocr.engine import OcrEngine, OcrLine, image_from_bytes
 from app.modules.ocr.parser import CardOCRResult, parse_insurance_card
 from app.modules.payers.payer import Payer
 from app.modules.payers.payer_plan import PayerPlan
 
 logger = logging.getLogger(__name__)
+
+
+def ocr_lines_from_bytes(
+    data: bytes,
+    media_type: str,
+    engine: OcrEngine,
+) -> list[OcrLine]:
+    image = image_from_bytes(data, media_type)
+    return engine.text_lines(image)
 
 
 def ocr_card_from_bytes(

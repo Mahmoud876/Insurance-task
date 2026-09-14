@@ -139,6 +139,7 @@ class ClaimService:
             status=ClaimStatus.DRAFT,
             service_date_from=payload.service_date_from,
             service_date_to=payload.service_date_to,
+            is_secondary_claim=payload.is_secondary_claim,
         )
         db.add(claim)
         db.commit()
@@ -204,6 +205,14 @@ class ClaimService:
         db.delete(claim)
         db.commit()
         ClaimService._refresh_gauges(db)
+
+    @staticmethod
+    def list_claim_lines(
+        db: Session, claim_id: UUID, auth_ctx: AuthContext
+    ) -> list[ClaimLineResponse]:
+        ClaimService._verify_permission(auth_ctx, Permission.CLAIM_READ)
+        claim = ClaimService._get_tenant_claim(db, claim_id, auth_ctx)
+        return [ClaimLineResponse.model_validate(line) for line in claim.lines]
 
     @staticmethod
     def replace_claim_lines(

@@ -12,6 +12,7 @@ from app.modules.claims.schemas.claim import (
     ClaimBoardPage,
     ClaimCreate,
     ClaimLineCreate,
+    ClaimLineResponse,
     ClaimResponse,
     ClaimUpdate,
 )
@@ -106,6 +107,15 @@ def submit_claim(
     auth_ctx: AuthContext = Depends(get_current_auth_context),
 ) -> Any:
     return ClaimService.submit_claim(db, claim_id, auth_ctx)
+
+
+@router.get("/{claim_id}/lines", response_model=list[ClaimLineResponse])
+def list_claim_lines(
+    claim_id: UUID,
+    db: Session = Depends(get_db),
+    auth_ctx: AuthContext = Depends(get_current_auth_context),
+) -> Any:
+    return ClaimService.list_claim_lines(db, claim_id, auth_ctx)
 
 
 @router.put("/{claim_id}/lines")

@@ -5,10 +5,12 @@ from contextvars import ContextVar
 from typing import Any
 from uuid import UUID
 
+from fastapi import Depends
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
+from app.core.security.auth import AuthContext, get_auth_context
 from app.core.telemetry import (
     DCS_DB_ACTIVE_CONNECTIONS,
     DCS_DB_MAX_CONNECTIONS,
@@ -99,8 +101,6 @@ def get_db() -> Generator[Session, None, None]:
     finally:
         db.close()
 
-from fastapi import Depends
-from app.core.security.auth import AuthContext, get_auth_context
 
 def get_tenant_context(auth_ctx: AuthContext = Depends(get_auth_context)) -> UUID | None:
     tenant_id = auth_ctx.tenant_id

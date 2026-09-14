@@ -15,6 +15,7 @@ class ClaimBase(BaseModel):
     service_date_from: date = Field(default_factory=date.today)
     service_date_to: date = Field(default_factory=date.today)
     total_amount: Decimal = Field(gt=Decimal("0.00"), decimal_places=2)
+    is_secondary_claim: bool = False
 
 
 class ClaimCreate(ClaimBase):
@@ -29,6 +30,7 @@ class ClaimUpdate(BaseModel):
     service_date_to: date | None = None
     total_amount: Decimal | None = Field(default=None, gt=Decimal("0.00"), decimal_places=2)
     status: ClaimStatus | None = None
+    is_secondary_claim: bool | None = None
 
 
 class ClaimResponse(ClaimBase):

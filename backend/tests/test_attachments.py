@@ -118,6 +118,52 @@ def test_upload_attachment_201_and_persisted(client, db_session, monkeypatch) ->
     assert row.file_key == key
 
 
+def test_list_attachments_returns_uploads(client, db_session, monkeypatch) -> None:
+    from app.modules.claims import api as claims_api
+
+    monkeypatch.setattr(claims_api.attachments, "object_storage", FakeStorage())
+
+    tenant, claim = create_claim(db_session)
+
+    first = client.post(
+        f"/api/v1/claims/{claim.id}/attachments",
+        headers=auth_headers(tenant.id),
+        files={"file": ("xray.png", PNG_BYTES, "image/png")},
+        data={"doc_type": "x-ray"},
+    )
+    second = client.post(
+        f"/api/v1/claims/{claim.id}/attachments",
+        headers=auth_headers(tenant.id),
+        files={"file": ("eob.png", PNG_BYTES, "image/png")},
+        data={"doc_type": "Primary EOB"},
+    )
+    assert first.status_code == 201
+    assert second.status_code == 201
+
+    response = client.get(
+        f"/api/v1/claims/{claim.id}/attachments",
+        headers=auth_headers(tenant.id),
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+
+    assert [item["id"] for item in body] == [second.json()["id"], first.json()["id"]]
+    assert body[0]["doc_type"] == "primary_eob"
+    assert body[0]["ocr_text"] is None
+
+
+def test_list_attachments_404_for_missing_claim(client, db_session) -> None:
+    tenant, _ = create_claim(db_session)
+
+    response = client.get(
+        f"/api/v1/claims/{uuid4()}/attachments",
+        headers=auth_headers(tenant.id),
+    )
+
+    assert response.status_code == 404
+
+
 def test_upload_rejects_mismatched_magic(client, db_session, monkeypatch) -> None:
     from app.modules.claims import api as claims_api
 

@@ -4,6 +4,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.modules.claims.models.claim import Claim
+from app.modules.claims.models.claim_attachment import (
+    ClaimAttachment,
+    is_primary_eob_doc_type,
+)
 from app.modules.claims.models.insurance_policy import InsurancePolicy
 from app.modules.claims.models.patient_procedure_history import PatientProcedureHistory
 from app.modules.rules.pipeline_types import (
@@ -48,7 +52,7 @@ def load_claim_snapshot(db: Session, claim: Claim) -> ClaimSnapshot:
 
 
 def load_reference_data(db: Session, claim: Claim) -> ReferenceData:
-    """Loads policy and patient procedure history for a claim in 2 queries total."""
+    """Loads policy, patient procedure history, and attachment metadata."""
     policy: PolicyReference | None = None
     if claim.policy_id is not None:
         policy_row = db.get(InsurancePolicy, claim.policy_id)
@@ -81,4 +85,17 @@ def load_reference_data(db: Session, claim: Claim) -> ReferenceData:
         for row in history_rows
     ]
 
-    return ReferenceData(policy=policy, patient_history=patient_history, code_metadata={})
+    attachment_rows = db.scalars(
+        select(ClaimAttachment).where(ClaimAttachment.claim_id == claim.id)
+    ).all()
+
+    code_metadata = {
+        "is_secondary_claim": bool(claim.is_secondary_claim),
+        "primary_eob_attached": any(
+            is_primary_eob_doc_type(att.doc_type) for att in attachment_rows
+        ),
+    }
+
+    return ReferenceData(
+        policy=policy, patient_history=patient_history, code_metadata=code_metadata
+    )

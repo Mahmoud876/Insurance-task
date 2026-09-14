@@ -156,6 +156,20 @@ def test_ocr_endpoint_returns_503_when_engine_unavailable(client, monkeypatch) -
     assert response.status_code == 503
 
 
+def test_ocr_endpoint_returns_501_in_production(client, monkeypatch) -> None:
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+
+    response = client.post(
+        "/api/v1/insurance-cards/ocr",
+        headers=auth_headers(uuid4()),
+        files={"file": ("card.png", PNG_BYTES, "image/png")},
+    )
+
+    assert response.status_code == 501
+
+
 def test_ocr_rejects_unsupported_media(client) -> None:
     response = client.post(
         "/api/v1/insurance-cards/ocr",
