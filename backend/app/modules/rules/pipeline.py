@@ -1,5 +1,6 @@
 import logging
 import time
+from collections.abc import Callable
 from datetime import UTC, date, datetime
 
 from app.core.normalization.tooth import parse_fdi
@@ -23,6 +24,7 @@ from app.modules.rules.pipeline_types import (
 )
 from app.modules.rules.registry import OperatorRegistry
 from app.modules.rules.resolver import ResolvedRuleSet, RuleConfig
+from app.modules.scrubber.rule_pack import get_handler_for_operator
 
 logger = logging.getLogger(__name__)
 
@@ -212,9 +214,50 @@ def evaluate_phased(context: EnrichedClaimContext, ruleset: ResolvedRuleSet) -> 
 
     # Evaluate Phase 2
     for rule in phase_2_rules:
-        findings.extend(evaluate_rule_safe(rule, context))
+        handler = get_handler_for_operator(rule.operator) if rule.operator else None
+        if handler is not None:
+            findings.extend(_run_pack_handler(rule, handler, context))
+        else:
+            findings.extend(evaluate_rule_safe(rule, context))
 
     return findings
+
+
+def _run_pack_handler(
+    rule: RuleConfig,
+    handler: Callable[[EnrichedClaimContext], list[Finding]],
+    context: EnrichedClaimContext,
+) -> list[Finding]:
+    """Executes a default-pack Python evaluator and emits its detailed findings.
+
+    The operator wrapper registered for pack rules only reports a boolean, which
+    collapses per-line findings and loses line numbers/messages. Calling the
+    handler directly preserves that detail while still honoring any layered
+    severity/message_key overrides on the RuleConfig.
+    """
+    try:
+        handler_findings = handler(context)
+        for finding in handler_findings:
+            DCS_RULE_HITS_TOTAL.labels(
+                rule_code=rule.rule_id,
+                severity=finding.severity.value,
+            ).inc()
+            if rule.severity is not None and rule.severity != finding.severity.value:
+                finding.severity = FindingSeverity(rule.severity)
+            if rule.message_key is not None:
+                finding.message_key = rule.message_key
+        return handler_findings
+    except Exception as exc:
+        DCS_RULE_ERRORS_TOTAL.labels(rule_code=rule.rule_id).inc()
+        logger.warning(f"Rule evaluation exception on {rule.rule_id}: {exc}")
+        return [
+            Finding(
+                rule_id=rule.rule_id,
+                severity=FindingSeverity.INFO,
+                message_key="DCS-ENGINE-0001",
+                message=f"Rule engine execution error: {str(exc)}",
+            )
+        ]
 
 
 def post_process_findings(raw_findings: list[Finding]) -> tuple[list[Finding], int, str, bool]:

@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from app.modules.rules.coverage_rules import (
     eval_p4_annual_maximum_exhausted,
@@ -17,6 +17,9 @@ from app.modules.rules.resolver import RuleConfig
 
 # Registry type for rule execution handlers
 RuleEvaluator = Callable[[dict[str, Any], dict[str, Any]], list[dict[str, Any]]]
+
+# Type of a default pack evaluator: takes the enriched context and returns findings.
+PackHandler = Callable[[EnrichedClaimContext], list[Any]]
 
 DEFAULT_RULE_PACK: dict[str, dict[str, Any]] = {
     "P4_POL_EXPIRED": {
@@ -130,3 +133,18 @@ def _register_default_operators() -> None:
 
 
 _register_default_operators()
+
+
+def get_handler_for_operator(
+    operator: str,
+) -> PackHandler | None:
+    """Returns the direct Python evaluator for a default pack rule, if any.
+
+    Built-in pack rules carry rich, per-line evaluators. Routing them straight
+    to the handler preserves their granular findings instead of collapsing to a
+    single boolean trigger.
+    """
+    for entry in get_default_rule_pack():
+        if entry["rule_id"].lower() == operator:
+            return cast(PackHandler, entry["handler"])
+    return None
