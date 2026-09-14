@@ -158,6 +158,49 @@ make test
 make lint
 ```
 
+### Backend load testing (k6)
+
+A k6 scenario against the scrub endpoint (`POST /api/v1/claims/{claim_id}/scrub`),
+ramping to 50 VUs, that fails if p(95) exceeds 300 ms or the error rate exceeds 1%.
+
+You'll need Postgres up (`docker compose up -d`), migrations applied
+(`make migrate`), the backend running (e.g. `uvicorn app.main:app` from
+`backend/`), and `k6` installed:
+
+```bash
+cd backend
+make load-test-seed     # seed a tenant + 50 claims, cache the IDs
+make load-test-token    # print a bearer JWT
+export TOKEN="$(make load-test-token)"
+export CLAIM_ID="$(python -c "import json;print(json.load(open('loadtest/.seed-state.json'))['claim_id'])")"
+make load-test
+```
+
+Without `CLAIM_ID` the scenario spreads its VUs across the full seeded claim
+pool instead of hammering a single row.
+
+---
+
+### Security hardening
+
+Everything here is covered by automated tests and gated in CI.
+
+- **Rate limiting** — Redis-backed fixed-window counters with an in-memory
+  fallback. Login, insurance cards, and claims are held to 60 req/min;
+  other endpoints get 300. `/health` and `/metrics` are exempt, and 429s
+  carry `Retry-After`.
+- **Security headers** — CSP without `unsafe-inline`, `X-Content-Type-Options:
+  nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`,
+  `Cross-Origin-Opener-Policy`, and HSTS over HTTPS only.
+- **Uploads** — magic-byte validation against a JPEG/PNG/WebP/PDF allowlist
+  and a 10 MB size cap enforced while the file is read.
+- **Attachments** — stored in object storage under random, claim-scoped keys
+  (never passed back through the API); downloads via 5-minute pre-signed
+  URLs. Cross-tenant or unknown-claim lookups return 404.
+- **Member IDs** — Fernet-encrypted at rest with a derived `last4` column for
+  lookups. Staging and production refuse to start with the dev default key.
+- **CI** — gitleaks, `pip-audit`, and `npm audit` all run as gates.
+
 ---
 
 ## Contributing

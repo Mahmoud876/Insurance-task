@@ -1,0 +1,46 @@
+groups:
+  - name: dcs_observability_alerts
+    rules:
+      - alert: ScrubLatencyDegraded
+        expr: histogram_quantile(0.95, sum(rate(dcs_scrub_duration_seconds_bucket[5m])) by (le)) > 1.0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Scrubbing p95 latency exceeded 1 second for 5 minutes"
+
+      - alert: RuleEngineErrorsDetected
+        expr: increase(dcs_rule_errors_total[1m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Rule engine thrown exception detected: {{ $labels.rule_code }}"
+
+      - alert: HighHttp5xxErrorRate
+        expr: (sum(rate(dcs_http_requests_total{status=~"5.."}[5m])) / sum(rate(dcs_http_requests_total[5m]))) * 100 > 1.0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HTTP 5xx error rate exceeded 1% over 5 minutes"
+
+      - alert: DatabasePoolSaturation
+        # dcs_db_active_connections + dcs_db_max_connections exposed by
+        # app/core/database_session.py pool events.
+        expr: (dcs_db_active_connections / dcs_db_max_connections) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database connection pool utilization above 80% for 5 minutes"
+
+      - alert: JobQueueBacklogHigh
+        # arq_queue_depth is registered by app/core/telemetry.py and reads 0 until
+        # the ARQ worker (design doc §12 async jobs) is deployed.
+        expr: arq_queue_depth > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ARQ job queue depth exceeded 100 items for 10 minutes"

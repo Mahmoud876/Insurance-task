@@ -11,6 +11,9 @@ from app.modules.rules.coverage_rules import (
     eval_p4_policy_not_effective,
     eval_p4_waiting_period,
 )
+from app.modules.rules.pipeline_types import EnrichedClaimContext
+from app.modules.rules.registry import OperatorRegistry
+from app.modules.rules.resolver import RuleConfig
 
 # Registry type for rule execution handlers
 RuleEvaluator = Callable[[dict[str, Any], dict[str, Any]], list[dict[str, Any]]]
@@ -21,6 +24,8 @@ DEFAULT_RULE_PACK: dict[str, dict[str, Any]] = {
         "name": "Policy Expired Check",
         "category": "eligibility",
         "handler": eval_p4_policy_expired,
+        "severity": "REJECT",
+        "message_key": "DCS-POL-0001",
         "enabled": True,
     },
     "P4_POL_NOT_EFFECTIVE": {
@@ -28,6 +33,8 @@ DEFAULT_RULE_PACK: dict[str, dict[str, Any]] = {
         "name": "Policy Not Yet Effective Check",
         "category": "eligibility",
         "handler": eval_p4_policy_not_effective,
+        "severity": "REJECT",
+        "message_key": "DCS-POL-0002",
         "enabled": True,
     },
     "P4_DEP_AGE_LIMIT": {
@@ -35,6 +42,8 @@ DEFAULT_RULE_PACK: dict[str, dict[str, Any]] = {
         "name": "Dependent Age Limit Exclusion",
         "category": "eligibility",
         "handler": eval_p4_dependent_age_limit,
+        "severity": "WARNING",
+        "message_key": "DCS-POL-0003",
         "enabled": True,
     },
     "P4_WAITING_PERIOD": {
@@ -42,6 +51,8 @@ DEFAULT_RULE_PACK: dict[str, dict[str, Any]] = {
         "name": "Mandatory Waiting Period Check",
         "category": "coverage",
         "handler": eval_p4_waiting_period,
+        "severity": "WARNING",
+        "message_key": "DCS-POL-0004",
         "enabled": True,
     },
     "P4_ANNUAL_MAX_EXHAUSTED": {
@@ -49,6 +60,8 @@ DEFAULT_RULE_PACK: dict[str, dict[str, Any]] = {
         "name": "Annual Maximum Exhausted Check",
         "category": "coverage",
         "handler": eval_p4_annual_maximum_exhausted,
+        "severity": "WARNING",
+        "message_key": "DCS-POL-0005",
         "enabled": True,
     },
     "P4_CATEGORY_EXCLUSION": {
@@ -56,6 +69,8 @@ DEFAULT_RULE_PACK: dict[str, dict[str, Any]] = {
         "name": "Procedure Category Exclusion",
         "category": "coverage",
         "handler": eval_p4_category_exclusion,
+        "severity": "WARNING",
+        "message_key": "DCS-POL-0006",
         "enabled": True,
     },
     "P4_FREQ_LIMITATION": {
@@ -63,6 +78,8 @@ DEFAULT_RULE_PACK: dict[str, dict[str, Any]] = {
         "name": "Procedure Frequency Limitation",
         "category": "coverage",
         "handler": eval_p4_frequency_limitation,
+        "severity": "WARNING",
+        "message_key": "DCS-POL-0007",
         "enabled": True,
     },
     "P4_COB_ORDER": {
@@ -70,6 +87,8 @@ DEFAULT_RULE_PACK: dict[str, dict[str, Any]] = {
         "name": "Coordination of Benefits (COB) Order Check",
         "category": "cob",
         "handler": eval_p4_cob_order,
+        "severity": "WARNING",
+        "message_key": "DCS-POL-0008",
         "enabled": True,
     },
 }
@@ -78,3 +97,36 @@ DEFAULT_RULE_PACK: dict[str, dict[str, Any]] = {
 def get_default_rule_pack() -> list[dict[str, Any]]:
     """Returns all enabled Phase-4 rules for the primary scrubbing pipeline."""
     return [rule for rule in DEFAULT_RULE_PACK.values() if rule.get("enabled", True)]
+
+
+def get_default_rule_configs() -> list[RuleConfig]:
+    """Maps the default phase-4 pack into operator-backed RuleConfigs for the pipeline."""
+    return [
+        RuleConfig(
+            rule_id=entry["rule_id"],
+            operator=entry["rule_id"].lower(),
+            severity=entry.get("severity", "WARNING"),
+            message_key=entry.get("message_key", "ERR_RULE_VIOLATION"),
+        )
+        for entry in get_default_rule_pack()
+    ]
+
+
+def _register_default_operators() -> None:
+    """Registers context-taking wrappers so the default pack runs via evaluate_rule_safe."""
+
+    for entry in get_default_rule_pack():
+        evaluator = entry["handler"]
+
+        def _as_bool(
+            fn: Callable[[EnrichedClaimContext], list[Any]],
+        ) -> Callable[[EnrichedClaimContext], bool]:
+            def _wrapped(context: EnrichedClaimContext) -> bool:
+                return bool(fn(context))
+
+            return _wrapped
+
+        OperatorRegistry.register(entry["rule_id"].lower())(_as_bool(evaluator))
+
+
+_register_default_operators()

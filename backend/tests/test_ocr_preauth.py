@@ -12,7 +12,7 @@ from app.modules.preauth.api.preauth import _parse_uuid
 
 def upload(content_type: str) -> UploadFile:
     return UploadFile(
-        file=BytesIO(b"insurance-card"),
+        file=BytesIO(b"\x89PNG\r\n\x1a\n" + b"insurance-card"),
         filename="card.png",
         headers=Headers({"content-type": content_type}),
     )

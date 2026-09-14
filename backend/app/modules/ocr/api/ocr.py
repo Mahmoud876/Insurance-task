@@ -1,6 +1,7 @@
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
 from app.config import settings
+from app.core.uploads import read_upload_with_cap, sniff_mime_type
 from app.modules.ocr.schemas import CardOCRResponse
 
 router = APIRouter(prefix="/v1/insurance-cards", tags=["Insurance Cards / OCR"])
@@ -22,11 +23,9 @@ async def process_card_ocr(file: UploadFile = File(...)) -> CardOCRResponse:
             detail="OCR processing is not available in production environment.",
         )
 
-    if file.content_type not in {"image/jpeg", "image/png", "image/webp", "application/pdf"}:
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="OCR accepts JPEG, PNG, WebP, or PDF insurance card files.",
-        )
+    declared_type = file.content_type
+    data = await read_upload_with_cap(file, settings.MAX_UPLOAD_SIZE_BYTES)
+    sniff_mime_type(data, declared_type)
 
     # Dev/Staging mock response
     return CardOCRResponse(

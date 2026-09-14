@@ -5,7 +5,7 @@ import uuid
 from datetime import date
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ARRAY, UUID, Date, ForeignKey, SmallInteger, String, Text
+from sqlalchemy import ARRAY, Date, ForeignKey, SmallInteger, String, Text
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -51,7 +51,7 @@ class PatientProcedureHistory(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         ForeignKey("claim_line.id", ondelete="SET NULL"), nullable=True, unique=True
     )
     payer_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("payer.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("payer.id", ondelete="SET NULL"), nullable=True
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
