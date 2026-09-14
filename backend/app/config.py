@@ -8,8 +8,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Dental Claims Engine"
     ENVIRONMENT: Literal["development", "staging", "production", "test"] = "development"
 
-    DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5433/postgres"
-
+    DATABASE_URL: str = "postgresql+psycopg2://postgres:postgres@postgres:5432/claims_db"
     JWT_SECRET_KEY: str = "insecure_dev_secret_key_change_in_production"
     JWT_ALGORITHM: str = "HS256"
     JWT_ISSUER: str = Field(default="dental-claims-engine")

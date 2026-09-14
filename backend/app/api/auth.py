@@ -2,7 +2,13 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse, RedirectResponse
+from datetime import UTC, datetime, timedelta
 
+import jwt
+from sqlalchemy import select
+
+from app.core.database_session import SessionLocal
+from app.core.user import AppUser
 from app.config import settings
 from app.core.security.oidc import (
     build_authorization_url,
@@ -16,6 +22,39 @@ from app.core.security.oidc import (
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+def _extract_email_from_token(token: str) -> str | None:
+    try:
+        claims = jwt.decode(token, options={"verify_signature": False})
+    except jwt.PyJWTError:
+        return None
+    email = claims.get("email")
+    return email if isinstance(email, str) else None
+
+
+def _mint_internal_token(email: str) -> str:
+    db = SessionLocal()
+    try:
+        user = db.execute(select(AppUser).where(AppUser.email == email)).scalar_one_or_none()
+    finally:
+        db.close()
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"No application user configured for '{email}'",
+        )
+
+    now = datetime.now(UTC)
+    payload = {
+        "sub": str(user.id),
+        "tenant_id": str(user.tenant_id),
+        "roles": [user.role],
+        "iss": settings.JWT_ISSUER,
+        "aud": settings.JWT_AUDIENCE,
+        "iat": now,
+        "exp": now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    }
+    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 @router.get("/login")
 def login() -> RedirectResponse:
@@ -86,18 +125,27 @@ def refresh(request: Request) -> JSONResponse:
         )
 
     token_payload = exchange_refresh_token(refresh_token)
-    access_token = token_payload.get("access_token")
-    if not isinstance(access_token, str) or not access_token:
+    keycloak_access_token = token_payload.get("access_token")
+    if not isinstance(keycloak_access_token, str) or not keycloak_access_token:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="OIDC provider did not return an access token",
         )
 
+    email = _extract_email_from_token(keycloak_access_token)
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="OIDC access token did not include an email claim",
+        )
+
+    internal_access_token = _mint_internal_token(email)
+
     new_refresh_token = token_payload.get("refresh_token")
     response_payload: dict[str, Any] = {
-        "access_token": access_token,
-        "token_type": token_payload.get("token_type", "Bearer"),
-        "expires_in": token_payload.get("expires_in"),
+        "access_token": internal_access_token,
+        "token_type": "Bearer",
+        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     }
 
     response = JSONResponse(content=response_payload)
