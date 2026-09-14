@@ -1,3 +1,6 @@
+from datetime import UTC, datetime, timedelta
+
+import jwt
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -38,21 +41,33 @@ def test_callback_sets_strict_http_only_refresh_cookie(monkeypatch) -> None:
 
 def test_refresh_uses_cookie_and_rotates_refresh_token(monkeypatch) -> None:
     client = create_auth_client()
+    now = datetime.now(UTC)
+    keycloak_token = jwt.encode(
+        {
+            "sub": "keycloak-user",
+            "email": "ola@example.com",
+            "iat": now,
+            "exp": now + timedelta(hours=1),
+        },
+        "unused-key",
+        algorithm="HS256",
+    )
     monkeypatch.setattr(
         "app.api.auth.exchange_refresh_token",
         lambda refresh_token: {
-            "access_token": "new-access-token",
+            "access_token": keycloak_token,
             "refresh_token": "new-refresh-token",
             "token_type": "Bearer",
             "expires_in": 600,
         },
     )
+    monkeypatch.setattr("app.api.auth._mint_internal_token", lambda email: "internal-access-token")
     client.cookies.set(settings.AUTH_REFRESH_COOKIE_NAME, "old-refresh-token")
 
     response = client.post("/auth/refresh")
 
     assert response.status_code == 200
-    assert response.json()["access_token"] == "new-access-token"
+    assert response.json()["access_token"] == "internal-access-token"
     set_cookie = response.headers.get("set-cookie", "")
     assert f"{settings.AUTH_REFRESH_COOKIE_NAME}=new-refresh-token" in set_cookie
     assert "HttpOnly" in set_cookie

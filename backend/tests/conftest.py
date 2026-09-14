@@ -6,11 +6,17 @@ from uuid import UUID, uuid4
 
 os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
+# Pin the scratch database before any app import: app.main calls load_dotenv()
+# which would otherwise inject the service's .env DATABASE_URL (the dev DB).
+# Setting it here makes later load_dotenv() calls (override=False) no-ops.
+os.environ.setdefault(
+    "DATABASE_URL",
+    "postgresql://postgres:postgres@127.0.0.1:5433/scrubber_test",
+)
 
 import jwt
 import pytest
 from alembic.config import Config
-from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
@@ -24,9 +30,6 @@ from app.main import app
 from app.modules.claims.models.claim import Claim, ClaimStatus
 from app.modules.claims.models.patient import Patient
 from app.modules.claims.models.provider import Provider
-
-load_dotenv()
-
 
 _ENSURE_RLS_ROLE = text(
     """
@@ -144,7 +147,7 @@ def auth_headers(
 def database_url() -> str:
     return os.getenv(
         "DATABASE_URL",
-        "postgresql://postgres:postgres@127.0.0.1:5433/postgres",
+        "postgresql://postgres:postgres@127.0.0.1:5433/scrubber_test",
     )
 
 

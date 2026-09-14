@@ -1,15 +1,13 @@
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import jwt
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse, RedirectResponse
-from datetime import UTC, datetime, timedelta
-
-import jwt
 from sqlalchemy import select
 
-from app.core.database_session import SessionLocal
-from app.core.user import AppUser
 from app.config import settings
+from app.core.database_session import SessionLocal
 from app.core.security.oidc import (
     build_authorization_url,
     exchange_authorization_code,
@@ -19,8 +17,10 @@ from app.core.security.oidc import (
     generate_state,
     logout_session,
 )
+from app.core.user import AppUser
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
 
 def _extract_email_from_token(token: str) -> str | None:
     try:
@@ -54,7 +54,9 @@ def _mint_internal_token(email: str) -> str:
         "iat": now,
         "exp": now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     }
-    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    encoded = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return encoded.decode("utf-8") if isinstance(encoded, bytes) else encoded
+
 
 @router.get("/login")
 def login() -> RedirectResponse:

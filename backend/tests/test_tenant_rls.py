@@ -26,7 +26,7 @@ def alembic_cfg():
         "sqlalchemy.url",
         os.getenv(
             "DATABASE_URL",
-            "postgresql://postgres:postgres@127.0.0.1:5433/postgres",
+            "postgresql://postgres:postgres@127.0.0.1:5433/scrubber_test",
         ),
     )
     return config
