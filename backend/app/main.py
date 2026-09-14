@@ -22,6 +22,7 @@ from app.core.errors import (
     validation_exception_handler,
 )
 from app.core.security.auth import AuthContext, decode_jwt_token
+from app.api.auth import router as auth_router
 from app.modules.analytics.api import router as analytics_router
 from app.modules.autofix.api.autofix import router as autofix_router
 from app.modules.claims.api.claims import router as claims_router
@@ -117,6 +118,8 @@ app.include_router(scrub_router, prefix="/api/v1")
 app.include_router(simulation_router, prefix="/api")
 app.include_router(ocr_router, prefix="/api")
 app.include_router(preauth_router, prefix="/api")
+
+app.include_router(auth_router)
 
 
 @app.get("/health")

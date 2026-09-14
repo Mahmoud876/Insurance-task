@@ -35,25 +35,31 @@ function AuthProvider({ children }) {
   }, [clearRefreshTimer]);
 
   const refreshAccessToken = useCallback(async () => {
-    const response = await fetch(`${AUTH_API_BASE_URL}/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-    });
+    try {
+      const response = await fetch(`${AUTH_API_BASE_URL}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+      });
 
-    if (response.status === 401) {
+      if (response.status === 401) {
+        setAccessToken(null);
+        setAuthenticated(false);
+        return null;
+      }
+      if (!response.ok) {
+        throw new Error(`Refresh failed with status ${response.status}`);
+      }
+
+      const payload = await response.json();
+      setAccessToken(payload.access_token);
+      setAuthenticated(true);
+      scheduleRefresh(payload.expires_in);
+      return payload.access_token;
+    } catch (error) {
       setAccessToken(null);
       setAuthenticated(false);
       return null;
     }
-    if (!response.ok) {
-      throw new Error(`Refresh failed with status ${response.status}`);
-    }
-
-    const payload = await response.json();
-    setAccessToken(payload.access_token);
-    setAuthenticated(true);
-    scheduleRefresh(payload.expires_in);
-    return payload.access_token;
   }, [scheduleRefresh]);
 
   useEffect(() => {
@@ -80,9 +86,8 @@ function AuthProvider({ children }) {
   }, [clearRefreshTimer, refreshAccessToken]);
 
   function login() {
-    // A full navigation is intentional: the API sets PKCE cookies before redirecting
-    // to the identity provider and returns to the frontend callback flow.
-    window.location.href = `${AUTH_API_BASE_URL}/auth/login`;
+    console.log("Login button clicked. Redirecting to:", `${AUTH_API_BASE_URL}/auth/login`);
+    window.location.assign(`${AUTH_API_BASE_URL}/auth/login`);
   }
 
   async function logout() {

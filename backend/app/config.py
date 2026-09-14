@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Dental Claims Engine"
     ENVIRONMENT: Literal["development", "staging", "production", "test"] = "development"
 
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/claims_db"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@postgres:5432/claims_db"
 
     JWT_SECRET_KEY: str = "insecure_dev_secret_key_change_in_production"
     JWT_ALGORITHM: str = "HS256"
@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     FRONTEND_BASE_URL: str = "http://localhost:5173"
 
     OIDC_ISSUER_URL: str = "http://localhost:8080/realms/insurance"
+    OIDC_INTERNAL_ISSUER_URL: str = "http://keycloak:8080/realms/insurance"
     OIDC_CLIENT_ID: str = "insurance-frontend"
     OIDC_CLIENT_SECRET: str | None = None
     OIDC_SCOPE: str = "openid profile email offline_access"

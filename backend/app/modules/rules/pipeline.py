@@ -12,8 +12,11 @@ from app.modules.rules.pipeline_types import (
 )
 from app.modules.rules.registry import OperatorRegistry
 from app.modules.rules.resolver import ResolvedRuleSet, RuleConfig
+from app.modules.rules.engine import ExpressionEvaluator
 
 logger = logging.getLogger(__name__)
+
+_evaluator = ExpressionEvaluator()
 
 
 def normalize_snapshot(snapshot: ClaimSnapshot) -> ClaimSnapshot:
@@ -94,8 +97,19 @@ def evaluate_rule_safe(rule: RuleConfig, context: EnrichedClaimContext) -> list[
 
     try:
         handler = OperatorRegistry.get(rule.operator)
-        # Pass context and rule args to operator
-        is_violated = handler.fn(context, *rule.args)
+
+        # Resolve variables in rule arguments
+        resolved_args = []
+        for arg in rule.args:
+            if isinstance(arg, str) and arg.startswith("$"):
+                path = arg[1:]
+                resolved_val = _evaluator._resolve_var(path, {"claim": context})
+                resolved_args.append(resolved_val)
+            else:
+                resolved_args.append(arg)
+
+        # Pass context and resolved args to operator
+        is_violated = handler.fn(context, *resolved_args)
 
         if is_violated:
             severity_enum = FindingSeverity(rule.severity or "REJECT")
