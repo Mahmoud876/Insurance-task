@@ -1,5 +1,6 @@
 import { Navigate, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
+import PublicRoute from "./PublicRoute";
 
 import AppShell from "@/components/layout/AppShell";
 import Login from "@/pages/Login";
@@ -14,8 +15,6 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Navigate to="/claims" replace />} />
 
-      <Route path="/login" element={<Login />} />
-
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
           <Route path="/dashboard" element={<Dashboard />} />
@@ -25,6 +24,10 @@ function AppRoutes() {
           <Route path="/patients" element={<Patients />} />
           <Route path="/rules" element={<RulesAdmin />} />
         </Route>
+      </Route>
+
+      <Route element={<PublicRoute />}>
+        <Route path="/login" element={<Login />} />
       </Route>
     </Routes>
   );

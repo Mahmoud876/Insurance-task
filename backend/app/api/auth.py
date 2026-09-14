@@ -32,6 +32,7 @@ def _extract_email_from_token(token: str) -> str | None:
 
 
 def _mint_internal_token(email: str) -> str:
+    print(f"DEBUG: Minting internal token for email: '{email}'")
     db = SessionLocal()
     try:
         user = db.execute(select(AppUser).where(AppUser.email == email)).scalar_one_or_none()
@@ -39,6 +40,7 @@ def _mint_internal_token(email: str) -> str:
         db.close()
 
     if user is None:
+        print(f"DEBUG: No user found in database for email: '{email}'")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"No application user configured for '{email}'",

@@ -98,3 +98,11 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+from fastapi import Depends
+from app.core.security.auth import AuthContext, get_auth_context
+
+def get_tenant_context(auth_ctx: AuthContext = Depends(get_auth_context)) -> UUID | None:
+    tenant_id = auth_ctx.tenant_id
+    current_tenant_id.set(tenant_id)
+    return tenant_id

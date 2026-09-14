@@ -47,8 +47,8 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(
-            ["tenant_id", "patient_id"],
-            ["patient.tenant_id", "patient.id"],
+            ["patient_id"],
+            ["patient.id"],
             ondelete="CASCADE",
             name="fk_history_tenant_patient",
         ),
