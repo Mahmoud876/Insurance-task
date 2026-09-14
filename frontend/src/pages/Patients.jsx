@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { fetchClaims } from "@/api/api";
+import { EmptyState, LoadingState, ErrorState } from "@/components/shared";
 
 function formatDate(value) {
   if (!value) {
@@ -205,12 +206,7 @@ function Patients() {
         />
       </section>
 
-      {loadError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <div className="font-semibold text-red-800">Unable to load patients</div>
-          <p className="mt-1 text-sm text-red-700">{loadError}</p>
-        </div>
-      )}
+      {loadError && <ErrorState error={loadError} onRetry={() => {}} />}
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
@@ -224,33 +220,30 @@ function Patients() {
                 <th className="px-4 py-3 font-semibold">Total billed</th>
               </tr>
             </thead>
-            <tbody>
-              {isLoading && (
+            <tbody className="divide-y">
+              {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
-                    Loading patients...
+                  <td colSpan={5} className="p-8 text-center">
+                    <LoadingState message="Loading patients..." />
                   </td>
                 </tr>
-              )}
-
-              {!isLoading && filteredRows.length === 0 && (
+              ) : filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
-                    No patients found.
+                  <td colSpan={5} className="p-8 text-center">
+                    <EmptyState title="No patients found" description="Try a different search query or check your data." />
                   </td>
                 </tr>
-              )}
-
-              {!isLoading &&
+              ) : (
                 filteredRows.map((row) => (
-                  <tr key={row.patientId} className="border-b last:border-b-0 hover:bg-gray-50">
+                  <tr key={row.patientId} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-900">{row.patientId}</td>
                     <td className="px-4 py-3 text-gray-700">{row.claimCount}</td>
                     <td className="px-4 py-3 text-gray-700">{row.openClaims}</td>
                     <td className="px-4 py-3 text-gray-700">{formatDate(row.lastServiceDate)}</td>
                     <td className="px-4 py-3 text-gray-700">{formatMoney(row.totalBilled)}</td>
                   </tr>
-                ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>

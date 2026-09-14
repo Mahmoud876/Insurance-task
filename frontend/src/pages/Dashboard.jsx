@@ -4,6 +4,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { fetchClaims } from "@/api/api";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { buttonVariants } from "@/components/ui/button";
+import { EmptyState, LoadingState, ErrorState } from "@/components/shared";
 const AnalyticsCharts = lazy(() => import("./AnalyticsCharts"));
 
 function formatDate(value) {
@@ -163,16 +164,16 @@ function Dashboard() {
           </Link>
         </header>
 
-        {isLoading && <div className="px-6 py-8 text-sm text-gray-500">Loading dashboard data…</div>}
+        {isLoading && <LoadingState message="Loading dashboard data…" />}
 
-        {!isLoading && loadError && (
-          <div className="px-6 py-8 text-sm text-red-600">
-            {loadError}
-          </div>
-        )}
+        {!isLoading && loadError && <ErrorState error={loadError} onRetry={() => {}} />}
 
         {!isLoading && !loadError && recentClaims.length === 0 && (
-          <div className="px-6 py-8 text-sm text-gray-500">No claims found yet.</div>
+          <EmptyState
+            title="No claims found yet"
+            description="Your recent claims list is empty. Start by creating a new claim."
+            action={<Link to="/claims/new" className={buttonVariants({ variant: "default" })}>Create claim</Link>}
+          />
         )}
 
         {!isLoading && !loadError && recentClaims.length > 0 && (
