@@ -26,6 +26,8 @@ TENANT_SLUG = "loadtest"
 LINE_COUNT = 20
 PROCEDURES = ["D0120", "D0274", "D1110", "D2391", "D2740", "D1351", "D0150"]
 
+SeedState = dict[str, "str | list[str]"]
+
 
 def _get_or_create_tenant(db: Session) -> Tenant:
     tenant = db.query(Tenant).filter(Tenant.slug == TENANT_SLUG).first()
@@ -75,7 +77,7 @@ def _create_claim(
     return claim
 
 
-def seed() -> dict[str, str | list[str]]:
+def seed() -> SeedState:
     with Session(engine) as db:
         tenant = _get_or_create_tenant(db)
 
