@@ -38,7 +38,9 @@ def callback(
     code_verifier = request.cookies.get(settings.AUTH_PKCE_COOKIE_NAME)
 
     if not code:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing authorization code")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Missing authorization code"
+        )
 
     # In development, we can be more lenient with the state check to get the user logged in
     if state and expected_state and state != expected_state:

@@ -10,6 +10,7 @@ from app.core.telemetry import (
     DCS_SCRUB_FINDINGS_TOTAL,
     tracer,
 )
+from app.modules.rules.engine import ExpressionEvaluator
 from app.modules.rules.operators.generic import age_at_service
 from app.modules.rules.pipeline_types import (
     ClaimSnapshot,
@@ -22,7 +23,6 @@ from app.modules.rules.pipeline_types import (
 )
 from app.modules.rules.registry import OperatorRegistry
 from app.modules.rules.resolver import ResolvedRuleSet, RuleConfig
-from app.modules.rules.engine import ExpressionEvaluator
 
 logger = logging.getLogger(__name__)
 
